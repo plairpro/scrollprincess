@@ -441,7 +441,7 @@ const tower = new T.Group(); scene.add(tower);
 
 /* Core wall */
 const core = mesh(new T.CylinderGeometry(CFG.RIN, CFG.RIN, 70, 40, 1, true), M(PAL.wall), 0, 0, 0, tower); core.receiveShadow = true;
-const bands = []; for (let i = 0; i < 30; i++) bands.push(mesh(new T.CylinderGeometry(CFG.RIN + .04, CFG.RIN + .04, .1, 40, 1, true), M(PAL.band), 0, 0, 0, tower));
+const bands = []; // no horizontal bands: they cut through windows
 
 
 /* ============================== STEPS ============================== */
@@ -454,6 +454,7 @@ const railGeo = new T.BoxGeometry(railLen + .05, .06, .05);
 const winGlow = B(PAL.glow);
 const steps = new Map();
 const skipSteps = new Set();
+const wallBusy = new Set(); // steps whose wall holds a niche, so no window/stones there
 
 function stepBody(parent, j, z = 0, width = W, cliff, grass){
   const g = new T.Group(); g.position.z = z; parent.add(g);
@@ -501,12 +502,15 @@ function makeStep(j){
   stepBody(g, j);
   addRail(g, j);
   const h = hash(j);
-  const hasWin = i => hash(i) < .15;
-  if (!hasWin(j) && !hasWin(j - 1) && !hasWin(j + 1) && hash(j * 2.3) < .45){ // stones on the wall, never near a window
-    const n = 1 + (hash(j * 4.1) < .4 ? 1 : 0);
-    for (let q = 0; q < n; q++) mesh(new T.BoxGeometry(.32 + hash(j + q * 7) * .3, .18, .06), M(hash(j + q) < .5 ? PAL.band : PAL.stone), (hash(j * 3 + q) - .5) * .3, .8 + hash(j * 5 + q) * 1.5, -W / 2 + .03, g);
+  // Wall decor follows the staircase in a fixed rhythm: a window every 6 steps at one height,
+  // a neat pair of stones halfway between windows. Nothing is placed where a niche is.
+  if (j % 6 === 0 && hash(j * .37 + 5) > .2 && !wallBusy.has(j)) addWindow(g, 1.5, -W / 2 + .08, false);
+  if (j % 6 === 3 && hash(j * 1.3) < .65 && !wallBusy.has(j)){
+    const flip = hash(j * 2.1) < .5 ? 1 : -1;
+    mesh(new T.BoxGeometry(.4, .18, .06), M(PAL.band), -.12 * flip, 1.1, -W / 2 + .03, g);
+    mesh(new T.BoxGeometry(.34, .18, .06), M(PAL.stone), .14 * flip, 1.36, -W / 2 + .03, g);
   }
-  if (h < .15) addWindow(g, 1.25 + hash(j + 3) * .5, -W / 2 + .08, hash(j + 5) < .4);
+  if (false){}
   else if (h > .9){ // flowers by the wall
     for (let n = 0; n < 4; n++){ const f = mesh(sphere(.05, 6, 5), M(n % 2 ? PAL.flower : PAL.flower2), (n - 1.5) * .12, .05 + (n % 2) * .03, -W / 2 + .22 + (n % 2) * .08, g); mesh(new T.CylinderGeometry(.008, .008, .06, 4), M(PAL.grass2), f.position.x, .02, f.position.z, g); }
   } else if (h > .83){ // candle lantern by the wall
@@ -761,7 +765,8 @@ function RavenPerch(k, first){
   const root = new T.Group(); place(root, k, CFG.ROUT - .12, .6 + .12); tower.add(root);
   const r = buildRaven(1); r.g.rotation.y = -Math.PI / 4; root.add(r.g);
   const bang = bangSprite(); bang.position.set(0, .45, 0); root.add(bang);
-  let state = 'perch', tm = 0, warn = 0; const prev = new T.Vector3(), tgt = new T.Vector3();
+  let state = 'perch', tm = 0, warn = 0, bodyYaw = -Math.PI / 4; const prev = new T.Vector3(), tgt = new T.Vector3(), rel = new T.Vector3();
+  const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
   return {
     type: 'raven', k, len: 1, first,
     update(c){
@@ -774,7 +779,25 @@ function RavenPerch(k, first){
         if (fast){ if (warn === 0){ AU.caw(.45); ravenToast(); } warn += c.dt; }
         else warn = Math.max(0, warn - c.dt * 1.6);
         const lim = lerp(C.warn, C.warnMin, c.diff), f = clamp(warn / lim, 0, 1);
-        r.head.rotation.y = near ? clamp(-d * .25, -.8, .3) : Math.sin(c.t * .7 + k) * .4;
+        // gaze: while the princess is near, the raven turns its body toward her and its head follows her exactly
+        const watching = d > -3 && d < C.see && G.state === 'play';
+        const ease = 1 - Math.exp(-c.dt * (watching ? 5 : 2));
+        if (watching){
+          girlCenterAt(c.s); rel.copy(girlCenter).sub(root.position).applyAxisAngle(UP, -root.rotation.y);
+          const want = Math.atan2(rel.x, rel.z);
+          bodyYaw += angDiff(want, bodyYaw) * .7 * ease;
+          const headYaw = clamp(angDiff(want, bodyYaw), -1.1, 1.1);
+          const pitch = clamp(Math.atan2(-(rel.y - .15), Math.hypot(rel.x, rel.z)), -.6, .5);
+          r.head.rotation.y += (headYaw - r.head.rotation.y) * Math.min(1, c.dt * 10);
+          r.head.rotation.x += (pitch - r.head.rotation.x) * Math.min(1, c.dt * 8);
+          const close = Math.abs(d) < 2 && warn === 0;
+          r.head.rotation.z += ((close ? Math.sin(c.t * 1.4 + k) * .3 : 0) - r.head.rotation.z) * Math.min(1, c.dt * 4);
+        } else {
+          bodyYaw += angDiff(-Math.PI / 4, bodyYaw) * ease;
+          r.head.rotation.y += (Math.sin(c.t * .7 + k) * .4 - r.head.rotation.y) * Math.min(1, c.dt * 3);
+          r.head.rotation.x *= 1 - Math.min(1, c.dt * 3); r.head.rotation.z *= 1 - Math.min(1, c.dt * 3);
+        }
+        r.g.rotation.y = bodyYaw;
         r.inner.position.y = warn > 0 ? -.05 * f + Math.abs(Math.sin(c.t * 30)) * .02 * f : 0;
         if (warn > 0) r.wings.forEach((w, i) => w.rotation.z = (i ? 1 : -1) * (-1.2 + .7 * f + Math.sin(c.t * 28) * .12 * f)); else flap(r, c.t, 0, 0, 1);
         bang.visible = warn > 0;
@@ -972,6 +995,7 @@ function Moths(k, first){
 /* ---- 6. Skeleton hand from a niche ---- */
 function Hand(k, first){
   const C = CFG.HAZ.hand; const rnd = mulberry32(k * 31 + 7);
+  for (let j = k - 1; j <= k + 1; j++) wallBusy.add(j);
   const g = new T.Group(); place(g, k, CFG.RIN); tower.add(g);
   mesh(new T.PlaneGeometry(.62, .55), B(PAL.niche), 0, .5, .012, g);
   mesh(new T.CircleGeometry(.31, 14, 0, Math.PI), B(PAL.niche), 0, .775, .012, g);
@@ -1006,7 +1030,7 @@ function Hand(k, first){
       dust.forEach(d => { d.m.visible = ph === 'tele'; if (d.m.visible){ const y = ((c.t * d.s + d.o) % 1); d.m.position.set(d.x, 1.05 - y * .9, .12); } });
     },
     deadly(s){ return ext > .5 && Math.abs(s - k) < .6; },
-    dispose(){ tower.remove(g); }
+    dispose(){ tower.remove(g); for (let j = k - 1; j <= k + 1; j++) wallBusy.delete(j); }
   };
 }
 
@@ -1092,7 +1116,7 @@ function generate(uptoS){
   }
 }
 function pruneHazards(s){ for (let i = hazards.length - 1; i >= 0; i--){ const h = hazards[i]; if (h.k + h.len < s - CFG.buildBehind + 2){ h.dispose(); hazards.splice(i, 1); } } }
-function clearHazards(){ hazards.forEach(h => h.dispose()); hazards.length = 0; skipSteps.clear(); }
+function clearHazards(){ hazards.forEach(h => h.dispose()); hazards.length = 0; skipSteps.clear(); wallBusy.clear(); }
 
 /* ============================== GAME STATE ============================== */
 const G = { state: 'title', s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', best: store.get('lg_best', 0), lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, hinted: store.get('lg_hints2', {}), newRec: false, sit: 0 };
@@ -1211,7 +1235,6 @@ function placeCamera(dt){
   camera.lookAt(target);
   scene.fog.near = dist - 2; scene.fog.far = dist + 22;
   const yb = Math.round(camY / 10) * 10; core.position.y = yb;
-  bands.forEach((b, i) => { b.position.y = yb - 34 + i * 2.4; });
   ground.rotation.y = tower.rotation.y; ground.position.y = -Math.max(0, camY - 3) * 1.6; ground.visible = camY < 14;
 }
 
