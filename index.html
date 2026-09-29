@@ -302,6 +302,7 @@ const CFG = {
   }
 };
 CFG.RMID = (CFG.RIN + CFG.ROUT) / 2;
+CFG.RGIRL = CFG.RMID - .22; // her path hugs the wall a little so the dress stays clear of the fence
 const ROOF_S = 1000, POTION_S = 603; // 10 floors of 100 steps, then the roof
 const DA = Math.PI * 2 / CFG.stepsPerRev;
 const L = CFG.RMID * DA;
@@ -547,7 +548,7 @@ const bands = []; // no horizontal bands: they cut through windows
 const cliffGeo = new T.BoxGeometry(L * 1.07, .46, W);
 const grassGeo = new T.BoxGeometry(L * 1.09, .08, W + .06);
 const frostGeo = new T.BoxGeometry(L * 1.09, .05, .1);
-const postGeo = new T.CylinderGeometry(.04, .045, .56, 6);
+const postGeo = new T.CylinderGeometry(.04, .045, .46, 6);
 const railLen = 2 * (CFG.ROUT - .12) * Math.sin(DA / 2);
 const railGeo = new T.BoxGeometry(railLen + .05, .06, .05);
 const winGlass = new T.MeshStandardMaterial({ color: 0x252858, roughness: .35, metalness: .1 }); // dark, unlit glass
@@ -569,11 +570,11 @@ function stepBody(parent, j, z = 0, width = W, cliff, grass){
   return g;
 }
 function addRail(g, j){
-  const post = mesh(postGeo, M(PAL.wood), 0, .28, W / 2 - .12, g); post.castShadow = true;
-  mesh(new T.SphereGeometry(.055, 8, 6), M(PAL.woodDark), 0, .58, W / 2 - .12, g);
-  const piv = new T.Group(); piv.position.set(0, .5, W / 2 - .12); piv.rotation.y = DA / 2; g.add(piv);
+  const post = mesh(postGeo, M(PAL.wood), 0, .23, W / 2 - .12, g); post.castShadow = true;
+  mesh(new T.SphereGeometry(.055, 8, 6), M(PAL.woodDark), 0, .48, W / 2 - .12, g);
+  const piv = new T.Group(); piv.position.set(0, .41, W / 2 - .12); piv.rotation.y = DA / 2; g.add(piv);
   const r = mesh(railGeo, M(PAL.wood), railLen / 2, CFG.H / 2, 0, piv); r.rotation.z = Math.atan2(CFG.H, railLen);
-  const r2 = mesh(railGeo, M(PAL.woodDark), railLen / 2, CFG.H / 2 - .22, 0, piv); r2.rotation.z = r.rotation.z;
+  const r2 = mesh(railGeo, M(PAL.woodDark), railLen / 2, CFG.H / 2 - .18, 0, piv); r2.rotation.z = r.rotation.z;
 }
 // Windows without light: dark glass in a light carved frame that follows the whole outline. Three shapes.
 const winFrameM = new T.MeshStandardMaterial({ color: 0xEADCC6, roughness: .8 });
@@ -829,7 +830,7 @@ const hazards = [];
 const bangTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#FFF8EA'; x.beginPath(); x.arc(64, 60, 46, 0, 7); x.fill(); x.beginPath(); x.moveTo(52, 96); x.lineTo(76, 96); x.lineTo(64, 118); x.fill(); x.fillStyle = '#D9544A'; x.font = '800 68px Nunito, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('!', 64, 64); return new T.CanvasTexture(c); })();
 function bangSprite(){ const s = new T.Sprite(new T.SpriteMaterial({ map: bangTex, transparent: true, depthTest: false })); s.scale.set(.42, .42, 1); s.visible = false; s.renderOrder = 10; return s; }
 const girlCenter = new T.Vector3();
-function girlCenterAt(s){ girlCenter.copy(P(s, CFG.RMID, .75 * CFG.girlScale)); }
+function girlCenterAt(s){ girlCenter.copy(P(s, CFG.RGIRL, .75 * CFG.girlScale)); }
 
 function buildRaven(sc = 1){
   const g = new T.Group(), inner = new T.Group(); g.add(inner);
@@ -909,7 +910,7 @@ function Skeleton(k, first){
 /* ---- 2. Raven on the rail: attacks anyone who runs past, only a calm walk is safe ---- */
 function RavenPerch(k, first){
   const C = CFG.HAZ.raven;
-  const root = new T.Group(); place(root, k, CFG.ROUT - .12, .6 + .12); tower.add(root);
+  const root = new T.Group(); place(root, k, CFG.ROUT - .12, .5 + .12); tower.add(root);
   const r = buildRaven(1); r.g.rotation.y = -Math.PI / 4; root.add(r.g);
   const bang = bangSprite(); bang.position.set(0, .45, 0); root.add(bang);
   let state = 'perch', tm = 0, warn = 0, bodyYaw = -Math.PI / 4; const prev = new T.Vector3(), tgt = new T.Vector3(), rel = new T.Vector3();
@@ -1042,7 +1043,7 @@ function Crumble(k, first){
     const inner = new T.Group(); g.add(inner);
     stepBody(inner, j, 0, W, PAL.cliffCracked, PAL.grassDry);
     for (let q = 0; q < 3; q++){ const cr = mesh(new T.BoxGeometry(.28 + rnd() * .3, .012, .03), M(PAL.crack), (rnd() - .5) * .5, .01, (rnd() - .5) * 1.2, inner); cr.rotation.y = (rnd() - .5) * 2; }
-    const post = mesh(postGeo, M(PAL.woodDark), 0, .28, W / 2 - .12, g); post.rotation.z = .12;
+    const post = mesh(postGeo, M(PAL.woodDark), 0, .23, W / 2 - .12, g); post.rotation.z = .12;
     const chunks = []; for (let q = 0; q < 5; q++){ const ch = mesh(new T.DodecahedronGeometry(.13 + rnd() * .06, 0), M(PAL.cliffCracked, { flatShading: true }), 0, 0, 0, g); ch.visible = false; chunks.push({ m: ch, v: new T.Vector3() }); }
     items.push({ j, g, inner, chunks, state: 'ok', t: 0 });
   }
@@ -1497,7 +1498,7 @@ function startEnding(){
   G.state = 'ending'; G.endT = 0; G.pending = 0; G.speed = 0; G.mult = 1; ui.multBadge.hidden = true;
   G.s = ROOF_S - .4; G.maxS = ROOF_S; ui.score.textContent = String(ROOF_S);
   if (ROOF_S > G.best){ G.best = ROOF_S; store.set('lg_best', ROOF_S); }
-  G.endFrom = P(G.s, CFG.RMID); const a = ROOF_S * DA + .15;
+  G.endFrom = P(G.s, CFG.RGIRL); const a = ROOF_S * DA + .15;
   G.endTo = new T.Vector3(Math.sin(a) * 1.05, ROOF_Y, Math.cos(a) * 1.05); G.endLit = false;
 }
 function updateEnding(dt){
@@ -1616,7 +1617,7 @@ function updateMist(){
 }
 function updateGirl(dt){
   const g = girl, s = G.s;
-  place(g.root, s, CFG.RMID, 0); g.root.rotation.y = s * DA + Math.PI / 2 - .32;
+  place(g.root, s, CFG.RGIRL, 0); g.root.rotation.y = s * DA + Math.PI / 2 - .32;
   const ph = s * Math.PI;
   const moving = G.speed > .15 && G.state === 'play';
   const amp = clamp(G.speed / 4, 0, 1);
