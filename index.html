@@ -202,6 +202,7 @@ const CFG = {
     flock:    { unlock: 80,  period: 5.6, tele: 1.0, pass: 1.2 },
     moths:    { unlock: 120, zone: 1.3, fast: 4.4, grace: .2 },
     hand:     { unlock: 150, period: 3.4, tele: .6, out: .25, hold: .55, back: .5 },
+    knight:   { unlock: 500, trigger: 2.0, reach: 2.35, windup: .85, windupMin: .65, strike: .28, crumble: .45, pile: 2.3, tremble: .6, assemble: .45 },
     gear:     { unlock: 200, omega: 1.1, omegaMax: 1.6, teeth: 4 }
   }
 };
@@ -1105,10 +1106,111 @@ function Gear(k, first){
   };
 }
 
-const MAKERS = { skeleton: Skeleton, raven: RavenPerch, crumble: Crumble, flock: Flock, moths: Moths, hand: Hand, gear: Gear };
-const ORDER = ['skeleton', 'raven', 'crumble', 'flock', 'moths', 'hand'];
+
+/* ---- 8. Skeleton knight (after floor 5): stands guard, swings at whoever comes close,
+   crumbles after the blow; slip past while the bones lie, or it reassembles ---- */
+function Knight(k, first){
+  const C = CFG.HAZ.knight; const rnd = mulberry32(k * 29 + 3);
+  const root = new T.Group(); place(root, k, CFG.RMID + .05); tower.add(root);
+  const tmp = new T.Group(); tmp.rotation.y = -Math.PI / 2 + .55; root.add(tmp);   // faces down the stairs, toward her
+  const pieces = []; const bm = M(PAL.bone, { roughness: .7 }), bs = M(PAL.boneShade, { roughness: .7 });
+  const steel = M(0xB9BED8, { roughness: .45, metalness: .45 }), dark = M(0x2A2548), plume = M(0xD9544A, { roughness: .8 });
+  const add = (o, x, y, z, rz = 0) => { o.position.set(x, y, z); o.rotation.z = rz; tmp.add(o); o.traverse(m => { if (m.isMesh) m.castShadow = true; }); pieces.push(o); return o; };
+  // great helm with a visor slit and a red plume (replaces the bare skull)
+  const helm = new T.Group();
+  mesh(new T.CylinderGeometry(.16, .165, .26, 12), steel, 0, 0, 0, helm);
+  mesh(new T.CylinderGeometry(.03, .16, .07, 12), steel, 0, .165, 0, helm);
+  mesh(new T.BoxGeometry(.2, .03, .06), dark, 0, .02, .145, helm);
+  mesh(new T.BoxGeometry(.02, .1, .06), dark, 0, -.05, .15, helm);
+  [-1, 1].forEach(sd => mesh(sphere(.014, 6, 5), B(PAL.eye), sd * .05, .02, .17, helm));
+  const pl = mesh(new T.ConeGeometry(.05, .2, 6), plume, 0, .26, -.03, helm); pl.rotation.x = -.5;
+  add(helm, 0, 1.1, 0);
+  add(mesh(new T.BoxGeometry(.18, .05, .12), bs), 0, .94, .03);
+  add(mesh(new T.CylinderGeometry(.025, .025, .42, 6), bs), 0, .68, -.02);
+  for (let i = 0; i < 3; i++){ const rib = add(mesh(new T.TorusGeometry(.12 - i * .014, .018, 5, 12, Math.PI * 1.4), bm), 0, .84 - i * .075, 0); rib.rotation.x = Math.PI / 2; }
+  add(mesh(new T.BoxGeometry(.22, .08, .11), bm), 0, .45, 0);
+  [-1, 1].forEach(sd => { add(mesh(new T.CylinderGeometry(.03, .025, .42, 6), bm), sd * .07, .22, 0); add(mesh(new T.BoxGeometry(.07, .04, .12), bs), sd * .07, .02, .03); });
+  add(mesh(new T.CylinderGeometry(.025, .02, .42, 6), bm), -.17, .67, 0, -.15);                 // left arm hangs
+  // right arm + sword on one pivot at the shoulder
+  const arm = new T.Group();
+  mesh(new T.CylinderGeometry(.027, .022, .4, 6), bm, 0, -.2, 0, arm);
+  const sword = new T.Group(); sword.position.y = -.42; arm.add(sword);
+  mesh(new T.BoxGeometry(.05, .12, .05), M(0x6B4A3A), 0, 0, 0, sword);            // grip
+  mesh(new T.BoxGeometry(.26, .04, .06), steel, 0, -.07, 0, sword);                // crossguard
+  mesh(new T.BoxGeometry(.06, .66, .018), steel, 0, -.42, 0, sword);               // blade
+  const tip = mesh(new T.ConeGeometry(.034, .09, 4), steel, 0, -.79, 0, sword); tip.rotation.x = Math.PI; tip.rotation.y = Math.PI / 4;
+  mesh(sphere(.035, 6, 5), M(0xE2BE68, { metalness: .4, roughness: .4 }), 0, .08, 0, sword); // pommel
+  add(arm, .17, .86, .02);
+  const GUARD = -.75, RAISED = -2.75, DOWN = -1.35;
+  arm.rotation.x = GUARD;
+  root.updateMatrixWorld(true); pieces.forEach(p => root.attach(p)); root.remove(tmp);
+  const data = pieces.map(p => {
+    const x = (rnd() - .5) * 1.4, z = (rnd() - .5) * .9;
+    const e = new T.Euler((rnd() < .6 ? Math.PI / 2 : 0) + (rnd() - .5) * .4, rnd() * 6.28, rnd() < .6 ? Math.PI / 2 : 0);
+    return { m: p, A: { p: p.position.clone(), q: p.quaternion.clone() }, S: { p: new T.Vector3(), q: new T.Quaternion() },
+             B: { p: new T.Vector3(x, Math.round(x / L) * CFG.H + .06, z), q: new T.Quaternion().setFromEuler(e) }, d: rnd() * .12 };
+  });
+  data[0].B.p.set(-L * .9, -CFG.H + .16, .2);                // the helm rolls a step down
+  const armData = data[data.length - 1]; armData.B.p.set(L * .4, .04, .35);
+  const glint = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFFFFF, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 }));
+  glint.scale.set(.5, .5, 1); root.add(glint);
+  let state = 'guard', tm = 0;
+  const baseArmQ = armData.A.q.clone(); const guardQ = new T.Quaternion().setFromEuler(new T.Euler(GUARD, 0, 0));
+  const armRest = baseArmQ.clone().multiply(guardQ.clone().invert());          // shoulder frame without the guard swing
+  const poseArm = ang => { armData.m.quaternion.copy(armRest).multiply(new T.Quaternion().setFromEuler(new T.Euler(ang, 0, 0))); };
+  const snapStart = () => data.forEach(dd => { dd.S.p.copy(dd.m.position); dd.S.q.copy(dd.m.quaternion); });
+  return {
+    type: 'knight', k, len: 1, first,
+    get state(){ return state; },
+    update(c){
+      tm += c.dt; const d = k - c.s, near = Math.abs(d) < 9;
+      const windup = lerp(C.windup, C.windupMin, c.diff);
+      if (state === 'guard'){
+        poseArm(GUARD + Math.sin(c.t * 2 + k) * .06);
+        glint.material.opacity = 0;
+        if (G.state === 'play' && d > 0 && d < C.trigger){ state = 'windup'; tm = 0; AU.tone(520, 'sawtooth', .5, .03, 0, 900); AU.rattle(.4); }
+      } else if (state === 'windup'){
+        const u = clamp(tm / windup, 0, 1);
+        poseArm(lerp(GUARD, RAISED, easeOut(clamp(u * 1.6, 0, 1))) + (u > .6 ? Math.sin(c.t * 40) * .03 : 0));
+        glint.position.copy(armData.m.position).add(new T.Vector3(0, .75, 0)); glint.material.opacity = u > .5 ? (u - .5) * 2 * (.6 + .4 * Math.sin(c.t * 30)) : 0;
+        if (tm >= windup){ state = 'strike'; tm = 0; AU.noise(.25, .12, 'bandpass', 900, .8); }
+      } else if (state === 'strike'){
+        const u = clamp(tm / C.strike, 0, 1);
+        poseArm(lerp(RAISED, DOWN, u * u));
+        glint.material.opacity = 0;
+        if (tm >= C.strike){ state = 'crumble'; tm = 0; AU.tone(1400, 'square', .12, .05); AU.noise(.12, .1, 'highpass', 3000, 1); AU.rattle(1); snapStart(); }
+      } else if (state === 'crumble' || state === 'pile' || state === 'tremble' || state === 'assemble'){
+        let f = 1, up = false;
+        if (state === 'crumble'){ f = clamp(tm / C.crumble, 0, 1); if (tm >= C.crumble){ state = 'pile'; tm = 0; } }
+        else if (state === 'pile'){ if (tm >= C.pile * (1 - .2 * c.diff)){ state = 'tremble'; tm = 0; if (near) AU.rattle(.5); } }
+        else if (state === 'tremble'){ if (tm >= C.tremble){ state = 'assemble'; tm = 0; if (near) AU.rattle(.7); } }
+        else { up = true; f = 1 - clamp(tm / C.assemble, 0, 1); if (tm >= C.assemble){ state = 'guard'; tm = 0; } }
+        for (const dd of data){
+          const fi = clamp(f * 1.14 - dd.d, 0, 1), e = up ? ease(fi) : easeOut(fi);
+          if (up){ dd.m.position.lerpVectors(dd.A.p, dd.B.p, e); dd.m.quaternion.copy(dd.A.q).slerp(dd.B.q, e); }
+          else { dd.m.position.lerpVectors(dd.S.p, dd.B.p, e); dd.m.quaternion.copy(dd.S.q).slerp(dd.B.q, e); }
+          dd.m.position.y += Math.sin(fi * Math.PI) * (up ? .45 : .3);
+          if (state === 'tremble'){ const j = .025 * (tm / C.tremble); dd.m.position.x += (Math.random() - .5) * j; dd.m.position.y += Math.random() * j; }
+        }
+        if (state === 'guard') data.forEach(dd => { dd.m.position.copy(dd.A.p); dd.m.quaternion.copy(dd.A.q); });
+      }
+    },
+    deadly(s){
+      const d = k - s;
+      if ((state === 'guard' || state === 'windup') && Math.abs(d) < .55) return true;        // walked into the knight
+      if (state === 'strike' && tm > C.strike * .45 && d > -.3 && d < C.reach) return true;   // caught by the blade
+      if (state === 'assemble' && tm > C.assemble * .5 && Math.abs(d) < .55) return true;     // it rebuilt around her
+      return false;
+    },
+    dispose(){ tower.remove(root); }
+  };
+}
+
+const MAKERS = { skeleton: Skeleton, raven: RavenPerch, crumble: Crumble, flock: Flock, moths: Moths, hand: Hand, gear: Gear, knight: Knight };
+const ORDER = ['skeleton', 'raven', 'crumble', 'flock', 'moths', 'hand', 'knight'];
 const HINTS = {
   skeleton: 'Скелет рассыпается. Проходи, пока кости лежат',
+  knight: 'Рыцарь замахнулся — отступи! Рассыплется после удара — беги мимо',
   raven: 'Вороны бросаются на бегущих. Увидишь «!» — сбавь шаг',
   crumble: 'Трещины! На таких ступенях не задерживайся',
   flock: 'Тени на ступенях — сейчас пролетит стая',
@@ -1118,6 +1220,7 @@ const HINTS = {
 };
 const WHY = {
   skeleton: 'Скелет собрался прямо перед тобой и вежливо помахал.',
+  knight: 'Меч рыцаря не промахнулся. Увидишь замах — шаг назад.',
   raven: 'Ворон бросился на бегущую принцессу. Мимо воронов — шагом.',
   flock: 'Стая пролетела сквозь лестницу. Тени были подсказкой.',
   crumble: 'Ступенька не дождалась, пока ты уйдёшь.',
