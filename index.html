@@ -451,10 +451,14 @@ const frostGeo = new T.BoxGeometry(L * 1.09, .05, .1);
 const postGeo = new T.CylinderGeometry(.04, .045, .56, 6);
 const railLen = 2 * (CFG.ROUT - .12) * Math.sin(DA / 2);
 const railGeo = new T.BoxGeometry(railLen + .05, .06, .05);
-const winGlow = B(PAL.glow);
+const winGlass = new T.MeshStandardMaterial({ color: 0x252858, roughness: .35, metalness: .1 }); // dark, unlit glass
 const steps = new Map();
 const skipSteps = new Set();
 const wallBusy = new Set(); // steps whose wall holds a niche, so no window/stones there
+// One window per 7-step block at a random offset (gap between windows 3..11 steps), some blocks skipped.
+const WIN_BLOCK = 7;
+function winStep(b){ return hash(b * 3.17 + 11) < .15 ? null : b * WIN_BLOCK + 1 + Math.floor(hash(b * 5.3 + 2) * 5); }
+function nearWindow(j, r){ const b = Math.floor(j / WIN_BLOCK); for (let q = b - 1; q <= b + 1; q++){ const w = winStep(q); if (w !== null && Math.abs(w - j) <= r) return true; } return false; }
 
 function stepBody(parent, j, z = 0, width = W, cliff, grass){
   const g = new T.Group(); g.position.z = z; parent.add(g);
@@ -472,16 +476,25 @@ function addRail(g, j){
   const r = mesh(railGeo, M(PAL.wood), railLen / 2, CFG.H / 2, 0, piv); r.rotation.z = Math.atan2(CFG.H, railLen);
   const r2 = mesh(railGeo, M(PAL.woodDark), railLen / 2, CFG.H / 2 - .22, 0, piv); r2.rotation.z = r.rotation.z;
 }
-function addWindow(parent, y, z, big){
-  const g = new T.Group(); g.position.set(0, y, z); parent.add(g);
-  const w = big ? .5 : .4, h = big ? .62 : .5;
-  mesh(new T.BoxGeometry(w + .14, h + .1, .06), M(PAL.frame), 0, 0, -.02, g);
-  const archF = mesh(new T.CylinderGeometry((w + .14) / 2, (w + .14) / 2, .06, 14, 1, false, -Math.PI / 2, Math.PI), M(PAL.frame), 0, h / 2 + .05, -.02, g); archF.rotation.x = Math.PI / 2;
-  mesh(new T.PlaneGeometry(w, h), winGlow, 0, 0, .015, g);
-  mesh(new T.CircleGeometry(w / 2, 14, 0, Math.PI), winGlow, 0, h / 2, .015, g);
-  mesh(new T.BoxGeometry(w + .24, .06, .14), M(PAL.wood), 0, -h / 2 - .06, .04, g);
-  mesh(new T.BoxGeometry(.03, h, .02), M(PAL.frame), 0, 0, .025, g);
-  mesh(new T.BoxGeometry(w, .03, .02), M(PAL.frame), 0, .02, .025, g);
+// Windows without light: dark glass in a wooden frame. Three shapes for variety.
+function addWindow(parent, y, z, kind, x = 0){
+  const g = new T.Group(); g.position.set(x, y, z); parent.add(g);
+  const fr = M(PAL.frame);
+  if (kind === 2){ // small round window
+    const r = .2;
+    const ring = mesh(new T.TorusGeometry(r + .03, .045, 6, 18), fr, 0, 0, 0, g);
+    mesh(new T.CircleGeometry(r, 18), winGlass, 0, 0, .01, g);
+    mesh(new T.BoxGeometry(.03, r * 2, .02), fr, 0, 0, .02, g); mesh(new T.BoxGeometry(r * 2, .03, .02), fr, 0, 0, .02, g);
+    return g;
+  }
+  const w = kind === 1 ? .28 : .42, h = kind === 1 ? .62 : .48;
+  mesh(new T.BoxGeometry(w + .12, h + .08, .06), fr, 0, 0, -.02, g);
+  const archF = mesh(new T.CylinderGeometry((w + .12) / 2, (w + .12) / 2, .06, 14, 1, false, -Math.PI / 2, Math.PI), fr, 0, h / 2 + .04, -.02, g); archF.rotation.x = Math.PI / 2;
+  mesh(new T.PlaneGeometry(w, h), winGlass, 0, 0, .015, g);
+  mesh(new T.CircleGeometry(w / 2, 14, 0, Math.PI), winGlass, 0, h / 2, .015, g);
+  mesh(new T.BoxGeometry(w + .2, .06, .13), M(PAL.wood), 0, -h / 2 - .05, .04, g);
+  mesh(new T.BoxGeometry(.03, h, .02), fr, 0, 0, .025, g);
+  if (kind === 0) mesh(new T.BoxGeometry(w, .03, .02), fr, 0, .02, .025, g);
   return g;
 }
 function roundTree(apples, sc = 1){
@@ -504,8 +517,11 @@ function makeStep(j){
   const h = hash(j);
   // Wall decor follows the staircase in a fixed rhythm: a window every 6 steps at one height,
   // a neat pair of stones halfway between windows. Nothing is placed where a niche is.
-  if (j % 6 === 0 && hash(j * .37 + 5) > .2 && !wallBusy.has(j)) addWindow(g, 1.5, -W / 2 + .08, false);
-  if (j % 6 === 3 && hash(j * 1.3) < .65 && !wallBusy.has(j)){
+  if (winStep(Math.floor(j / WIN_BLOCK)) === j && !wallBusy.has(j)){
+    const kind = hash(j * 1.91) < .5 ? 0 : (hash(j * 1.91) < .8 ? 1 : 2);
+    addWindow(g, 1.35 + hash(j * 2.7) * .35, -W / 2 + .08, kind, (hash(j * 4.4) - .5) * .25);
+  }
+  if (hash(j * 1.3) < .3 && !nearWindow(j, 2) && !wallBusy.has(j) && !(hash((j - 1) * 1.3) < .3) && !(hash((j - 2) * 1.3) < .3)){
     const flip = hash(j * 2.1) < .5 ? 1 : -1;
     mesh(new T.BoxGeometry(.4, .18, .06), M(PAL.band), -.12 * flip, 1.1, -W / 2 + .03, g);
     mesh(new T.BoxGeometry(.34, .18, .06), M(PAL.stone), .14 * flip, 1.36, -W / 2 + .03, g);
