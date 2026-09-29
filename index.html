@@ -773,14 +773,14 @@ function buildGirl(){
   const skin = M(PAL.skin, { roughness: .8 }), white = M(0xF8F5F1, { roughness: .72 }), gold = M(0xE2BE68, { roughness: .42, metalness: .35 });
   const hair = M(0xF0D28A, { roughness: .68, flatShading: true }), boot = M(0x4A3833, { roughness: .8 });
   const legs = [-1, 1].map(sd => {
-    const piv = new T.Group(); piv.position.set(sd * .06, .3, 0); body.add(piv);
-    mesh(new T.CylinderGeometry(.042, .048, .26, 10), boot, 0, -.13, 0, piv);
-    const toe = mesh(sphere(.05, 10, 8), boot, 0, -.27, .02, piv); toe.scale.set(1, .6, 1.25);
+    const piv = new T.Group(); piv.position.set(sd * .065, .42, 0); body.add(piv);
+    mesh(new T.CylinderGeometry(.038, .042, .38, 10), skin, 0, -.19, 0, piv);           // bare legs below a short dress
+    const toe = mesh(sphere(.055, 10, 8), M(0xFFFFFF, { roughness: .7 }), 0, -.39, .025, piv); toe.scale.set(1, .6, 1.3); // white shoes
     return piv;
   });
-  const dressG = new T.Group(); dressG.position.y = .54; body.add(dressG);
-  mesh(new T.CylinderGeometry(.11, .3, .76, 28), white, 0, 0, 0, dressG);
-  mesh(new T.CylinderGeometry(.302, .306, .055, 28), gold, 0, -.35, 0, dressG);
+  const dressG = new T.Group(); dressG.position.y = .66; body.add(dressG);           // short A-line dress, like the icons
+  mesh(new T.CylinderGeometry(.11, .27, .52, 28), white, 0, 0, 0, dressG);
+  mesh(new T.CylinderGeometry(.272, .276, .05, 28), gold, 0, -.24, 0, dressG);
   const collar = mesh(new T.TorusGeometry(.085, .018, 8, 20), gold, 0, .925, 0, body); collar.rotation.x = Math.PI / 2;
   mesh(new T.CylinderGeometry(.045, .05, .07, 10), skin, 0, .97, 0, body);
   // sleeves with gold cuffs; both hands hold the lantern in front of her
