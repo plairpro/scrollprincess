@@ -612,16 +612,16 @@ function buildGirl(){
   mesh(new T.CylinderGeometry(.302, .306, .055, 28), gold, 0, -.35, 0, dressG);
   const collar = mesh(new T.TorusGeometry(.085, .018, 8, 20), gold, 0, .925, 0, body); collar.rotation.x = Math.PI / 2;
   mesh(new T.CylinderGeometry(.045, .05, .07, 10), skin, 0, .97, 0, body);
-  // sleeves with gold cuffs; the right hand carries the lantern
-  const handR = new T.Vector3();
+  // sleeves with gold cuffs; both hands hold the lantern in front of her
+  const handR = new T.Vector3(0, .63, .25);
   [-1, 1].forEach(sd => {
-    const shoulder = new T.Vector3(sd * .1, .88, 0), cuff = new T.Vector3(sd * .19, .6, sd > 0 ? .07 : .02);
-    body.add(cylBetween(shoulder, cuff, .04, .085, white, 18));
-    const ring = new T.Mesh(new T.TorusGeometry(.083, .016, 8, 20), gold); ring.position.copy(cuff);
-    ring.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), cuff.clone().sub(shoulder).normalize()); body.add(ring);
-    const hand = cuff.clone().add(cuff.clone().sub(shoulder).normalize().multiplyScalar(.045));
-    mesh(sphere(.038, 10, 8), skin, hand.x, hand.y, hand.z, body);
-    if (sd > 0) handR.copy(hand);
+    const shoulder = new T.Vector3(sd * .1, .88, .01), elbow = new T.Vector3(sd * .16, .72, .1), cuff = new T.Vector3(sd * .075, .645, .215);
+    body.add(cylBetween(shoulder, elbow, .04, .06, white, 18));
+    body.add(cylBetween(elbow, cuff, .06, .075, white, 18));
+    const ring = new T.Mesh(new T.TorusGeometry(.073, .015, 8, 20), gold); ring.position.copy(cuff);
+    ring.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), cuff.clone().sub(elbow).normalize()); body.add(ring);
+    const hand = cuff.clone().add(cuff.clone().sub(elbow).normalize().multiplyScalar(.04));
+    mesh(sphere(.036, 10, 8), skin, hand.x, hand.y, hand.z, body);
   });
   // head
   const head = new T.Group(); head.position.y = 1.15; body.add(head);
@@ -644,9 +644,9 @@ function buildGirl(){
   const veil = new T.Group(); veil.position.y = .64; hat.add(veil);
   const veilM = new T.MeshStandardMaterial({ color: 0xF4F1FA, roughness: .9, side: T.DoubleSide, transparent: true, opacity: .93 });
   mesh(new T.CylinderGeometry(0, .44, 1.2, 20, 1, true, Math.PI * .56, Math.PI * .88), veilM, 0, -.6, 0, veil);
-  // lantern hangs from the right hand
+  // lantern hangs from both hands
   const pivot = new T.Group(); pivot.position.copy(handR); body.add(pivot);
-  const L0 = buildLantern(); L0.lamp.scale.setScalar(.95); L0.lamp.position.set(0, -.17, 0); pivot.add(L0.lamp);
+  const L0 = buildLantern(); L0.lamp.scale.setScalar(.95); L0.lamp.position.set(0, -.15, .05); pivot.add(L0.lamp);
   shadowAll(body, true, false);
   root.scale.setScalar(CFG.girlScale);
   return { root, body, legs, dressG, head, back: veil, strands: [], lamp: pivot, lcore: L0.lamp, light: L0.light, coreMat: L0.coreMat, halo: L0.halo };
