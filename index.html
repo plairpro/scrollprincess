@@ -78,6 +78,16 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .title-card .subtitle{font:800 11.5px var(--f-body);letter-spacing:4px;text-transform:uppercase;color:var(--lantern-deep);margin-top:-2px}
 .title-card p{font-size:13.5px;margin-top:6px}
 .title-card .btn.go{font-size:20px;padding:12px 30px;margin-top:8px}
+.toggles{display:flex;gap:12px;justify-content:center}
+.tgl{width:92px;padding:12px 0 9px;border-radius:18px;border:0;background:#EEE6F7;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:5px;font:800 12.5px var(--f-body);cursor:pointer;transition:background .15s,color .15s,transform .1s}
+.tgl svg{width:30px;height:30px}
+.tgl .x{display:none}
+.tgl:hover{background:#E4F3EC}
+.tgl:active{transform:scale(.95)}
+.tgl:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
+.tgl[aria-pressed="false"]{background:#ECE7F0;color:#A69DB8}
+.tgl[aria-pressed="false"] .x{display:inline}
+.tgl[aria-pressed="false"] .w{display:none}
 .btn.alt{background:#7D7299;box-shadow:0 6px 0 #5E5580}
 .small{font-size:12.5px!important}
 .big{font-family:var(--f-display);font-weight:600;font-size:64px;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;font-variant-numeric:tabular-nums}
@@ -147,7 +157,16 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
     <h2>Пауза</h2>
     <p>Девочка присела отдохнуть на ступеньке.</p>
     <button class="btn" id="resumeBtn">Продолжить</button>
-    <button class="btn alt" id="soundBtn">Звук: вкл</button>
+    <div class="toggles">
+      <button class="tgl" id="sfxBtn" aria-pressed="true" aria-label="Звуки">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="w" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line class="x" x1="3" y1="3" x2="21" y2="21" stroke="#D9544A" stroke-width="2.4" stroke-linecap="round"/></svg>
+        <span>Звуки</span>
+      </button>
+      <button class="tgl" id="musBtn" aria-pressed="true" aria-label="Музыка">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10-2v11.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><ellipse cx="6.8" cy="17.7" rx="2.8" ry="2.2" fill="currentColor"/><ellipse cx="16.8" cy="15.7" rx="2.8" ry="2.2" fill="currentColor"/><line class="x" x1="3" y1="3" x2="21" y2="21" stroke="#D9544A" stroke-width="2.4" stroke-linecap="round"/></svg>
+        <span>Музыка</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -256,7 +275,7 @@ const MUS = {
   SCALE: [60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84]
 };
 const AU = {
-  ctx: null, master: null, enabled: store.get('lg_sound', true), padNodes: null,
+  ctx: null, master: null, sfxOn: store.get('lg_sfx', true), musOn: store.get('lg_music', true), padNodes: null,
   init(){
     if (this.ctx){ if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try {
@@ -267,7 +286,9 @@ const AU = {
       comp.threshold.value = -20; comp.knee.value = 18; comp.ratio.value = 4; comp.attack.value = .004; comp.release.value = .25;
       this.post = this.ctx.createGain(); this.post.gain.value = this.mobile ? 1.8 : 1.3;
       comp.connect(this.post); this.post.connect(this.ctx.destination);
-      this.master = this.ctx.createGain(); this.master.gain.value = this.enabled ? .75 : 0; this.master.connect(comp);
+      this.master = this.ctx.createGain(); this.master.gain.value = .75; this.master.connect(comp);
+      this.sfx = this.ctx.createGain(); this.sfx.gain.value = this.sfxOn ? 1 : 0; this.sfx.connect(this.master);
+      this.mus = this.ctx.createGain(); this.mus.gain.value = this.musOn ? 1 : 0; this.mus.connect(this.master);
       const len = this.ctx.sampleRate; const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate); const d = buf.getChannelData(0);
       for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
       this.noiseBuf = buf;
@@ -292,25 +313,26 @@ const AU = {
       } catch(e){}
     } else if (this.silentEl && this.silentEl.paused) this.silentEl.play().catch(() => {});
   },
-  setEnabled(v){ this.enabled = v; store.set('lg_sound', v); if (this.master) this.master.gain.setTargetAtTime(v ? .75 : 0, this.ctx.currentTime, .05); },
+  setSfx(v){ this.sfxOn = v; store.set('lg_sfx', v); if (this.sfx) this.sfx.gain.setTargetAtTime(v ? 1 : 0, this.ctx.currentTime, .05); },
+  setMusic(v){ this.musOn = v; store.set('lg_music', v); if (this.mus) this.mus.gain.setTargetAtTime(v ? 1 : 0, this.ctx.currentTime, .08); },
   ok(){ return this.ctx && this.ctx.state === 'running'; },
-  tone(f, type, dur, peak, when = 0, slide){
+  tone(f, type, dur, peak, when = 0, slide, dest){
     if (!this.ok()) return; const c = this.ctx, t = c.currentTime + when;
     const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t);
     if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
     g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + .05);
+    o.connect(g); g.connect(dest || this.sfx); o.start(t); o.stop(t + dur + .05);
   },
   noise(dur, peak, ftype, freq, q = 1, when = 0, attack = .005){
     if (!this.ok()) return null; const c = this.ctx, t = c.currentTime + when;
     const s = c.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true;
     const f = c.createBiquadFilter(); f.type = ftype; f.frequency.value = freq; f.Q.value = q;
     const g = c.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + attack); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(this.master); s.start(t, Math.random()); s.stop(t + dur + .05);
+    s.connect(f); f.connect(g); g.connect(this.sfx); s.start(t, Math.random()); s.stop(t + dur + .05);
     return { f, g };
   },
   step(h){ this.noise(.05, .035, 'bandpass', 1100 + Math.random() * 400, 2); if (this.music) this.tone(this.mf(this.chordTone()), 'sine', .25, .012); },
-  musicBox(){ [659.3, 784, 987.8, 1174.7, 987.8, 1318.5].forEach((f, i) => { this.tone(f, 'triangle', .9, .07, i * .16); this.tone(f * 2, 'sine', .5, .015, i * .16); }); },
+  musicBox(){ [659.3, 784, 987.8, 1174.7, 987.8, 1318.5].forEach((f, i) => { this.tone(f, 'triangle', .9, .07, i * .16, 0, this.mus); this.tone(f * 2, 'sine', .5, .015, i * .16, 0, this.mus); }); },
   caw(v = 1){ for (let i = 0; i < 2; i++){ this.tone(760, 'sawtooth', .18, .05 * v, i * .22, 420); this.noise(.16, .03 * v, 'bandpass', 1300, 3, i * .22); } },
   rattle(v = 1){ for (let i = 0; i < 7; i++) this.noise(.03, .06 * v, 'highpass', 2600 + Math.random() * 1800, 1, Math.random() * .35); },
   wings(v = 1){ const r = this.noise(1.3, .09 * v, 'bandpass', 520, .8, 0, .5); if (!r) return; const lfo = this.ctx.createOscillator(), lg = this.ctx.createGain(); lfo.frequency.value = 13; lg.gain.value = 300; lfo.connect(lg); lg.connect(r.f.frequency); lfo.start(); lfo.stop(this.ctx.currentTime + 1.4); },
@@ -326,12 +348,12 @@ const AU = {
   /* ---- generative night music: chord progressions, bass, music-box melody, echo ---- */
   startMusic(){
     const c = this.ctx;
-    const bus = c.createGain(); bus.gain.value = 0; bus.connect(this.master);
+    const bus = c.createGain(); bus.gain.value = 0; bus.connect(this.mus);
     const dly = c.createDelay(1.5); dly.delayTime.value = .42;
     const fb = c.createGain(); fb.gain.value = .33;
     const dlp = c.createBiquadFilter(); dlp.type = 'lowpass'; dlp.frequency.value = 2200;
     const wet = c.createGain(); wet.gain.value = .38;
-    bus.connect(dly); dly.connect(dlp); dlp.connect(fb); fb.connect(dly); dlp.connect(wet); wet.connect(this.master);
+    bus.connect(dly); dly.connect(dlp); dlp.connect(fb); fb.connect(dly); dlp.connect(wet); wet.connect(this.mus);
     bus.gain.setTargetAtTime(1, c.currentTime, 1.5);
     this.music = { bus, prog: Math.floor(Math.random() * MUS.PROGS.length), idx: 0, beat: 0, next: c.currentTime + .3, mel: 72, cur: MUS.CH.C, lastBell: 0 };
     setInterval(() => this.schedule(), 60);
@@ -1046,9 +1068,10 @@ function clearHazards(){ hazards.forEach(h => h.dispose()); hazards.length = 0; 
 const G = { state: 'title', s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', best: store.get('lg_best', 0), lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, hinted: store.get('lg_hints2', {}), newRec: false, sit: 0 };
 const $ = id => document.getElementById(id);
 const ui = { hud: $('hud'), score: $('score'), ribbon: $('ribbon'), charges: $('charges'), titleP: $('titleP'), overP: $('overP'), pauseP: $('pauseP'),
-  overScore: $('overScore'), overBest: $('overBest'), overWhy: $('overWhy'), toast: $('toast'), floor: $('floor'), dbg: $('dbg'), bestTitle: $('bestTitle'), soundBtn: $('soundBtn') };
+  overScore: $('overScore'), overBest: $('overBest'), overWhy: $('overWhy'), toast: $('toast'), floor: $('floor'), dbg: $('dbg'), bestTitle: $('bestTitle'), sfxBtn: $('sfxBtn'), musBtn: $('musBtn') };
 ui.bestTitle.textContent = G.best ? `Рекорд: ${G.best} шагов` : '';
-ui.soundBtn.textContent = 'Звук: ' + (AU.enabled ? 'вкл' : 'выкл');
+function syncToggles(){ ui.sfxBtn.setAttribute('aria-pressed', String(AU.sfxOn)); ui.musBtn.setAttribute('aria-pressed', String(AU.musOn)); }
+syncToggles();
 
 let toastTimer = 0, floorTimer = 0;
 function toast(msg, dur = 3.4){ ui.toast.textContent = msg; ui.toast.classList.add('on'); toastTimer = dur; }
@@ -1110,7 +1133,7 @@ canvas.addEventListener('pointerdown', e => { AU.init(); drag = { id: e.pointerI
 canvas.addEventListener('pointermove', e => {
   if (!drag || drag.id !== e.pointerId) return;
   const dy = drag.y - e.clientY, dx = e.clientX - drag.x; drag.x = e.clientX; drag.y = e.clientY;
-  feed((dy + dx * .5) * CFG.dragK);
+  feed((Math.abs(dx) > Math.abs(dy) ? dx : dy) * CFG.dragK); // left→right or bottom→top = forward, the stronger axis wins
 });
 const endDrag = e => { if (drag && drag.id === e.pointerId) drag = null; };
 canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
@@ -1129,12 +1152,13 @@ $('startBtn').addEventListener('click', start);
 $('againBtn').addEventListener('click', start);
 $('pauseBtn').addEventListener('click', () => pause(true));
 $('resumeBtn').addEventListener('click', () => pause(false));
-ui.soundBtn.addEventListener('click', () => { AU.unlock(); AU.setEnabled(!AU.enabled); ui.soundBtn.textContent = 'Звук: ' + (AU.enabled ? 'вкл' : 'выкл'); });
+ui.sfxBtn.addEventListener('click', () => { AU.unlock(); AU.setSfx(!AU.sfxOn); syncToggles(); });
+ui.musBtn.addEventListener('click', () => { AU.unlock(); AU.setMusic(!AU.musOn); syncToggles(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); else if (AU.ctx && AU.ctx.state !== 'running') AU.ctx.resume().catch(() => {}); });
 ['touchend', 'click', 'keydown', 'pointerup'].forEach(ev => document.addEventListener(ev, () => { if (!AU.ok()) AU.unlock(); }, { capture: true, passive: true }));
 const sndPill = $('sndPill');
-sndPill.addEventListener('click', () => { AU.unlock(); if (!AU.enabled){ AU.setEnabled(true); ui.soundBtn.textContent = 'Звук: вкл'; } });
-setInterval(() => { sndPill.hidden = !(AU.enabled && G.state !== 'title' && !AU.ok()); }, 500);
+sndPill.addEventListener('click', () => { AU.unlock(); });
+setInterval(() => { sndPill.hidden = !((AU.sfxOn || AU.musOn) && G.state !== 'title' && !AU.ok()); }, 500);
 
 /* ============================== LOOP ============================== */
 let camS = G.s, camY = G.s * CFG.H;
