@@ -1425,7 +1425,7 @@ function syncToggles(){ ui.sfxBtn.setAttribute('aria-pressed', String(AU.sfxOn))
 syncToggles();
 
 let toastTimer = 0, floorTimer = 0;
-function toast(msg, dur = 3.4){ ui.toast.textContent = msg; ui.toast.classList.add('on'); toastTimer = dur; }
+function toast(){} // text hints are off: the game explains itself with icons and animation
 function floorBanner(n){ ui.floor.innerHTML = `<small>этаж</small>${n}`; ui.floor.classList.add('on'); floorTimer = 2.2; }
 let ravenToastAt = -99;
 function ravenToast(){ if (G.t - ravenToastAt > 6){ ravenToastAt = G.t; toast('Ворон! Сбавь шаг, иначе нападёт', 2.4); } }
