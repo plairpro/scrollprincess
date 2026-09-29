@@ -24,7 +24,7 @@
   --mint:#9ED8C4;
   --night:#1B1D52;
   --f-display:"Fredoka","Nunito",ui-rounded,"Arial Rounded MT Bold",system-ui,sans-serif;
-  --f-script:"Kurale","Philosopher",Georgia,"Times New Roman",serif;
+  --f-script:"Kurale","Philosopher",Georgia,"Times New Roman","Songti SC","Noto Serif CJK SC","Source Han Serif SC","Hiragino Mincho ProN","Yu Mincho","Noto Serif KR",serif;
   --f-body:"Nunito",ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
@@ -153,8 +153,8 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 
 <div class="panel" id="titleP">
   <div class="card title-card">
-    <h1>Принцесса Скролл</h1>
-    <div class="subtitle">восхождение</div>
+    <h1 id="gameTitle">Принцесса Скролл</h1>
+    <div class="subtitle" id="gameSub">восхождение</div>
     <button class="btn go icon-btn" id="startBtn" aria-label="Начать"><svg class="ico-walk" viewBox="0 0 40 48" aria-hidden="true"><path d="M20 1 27 18H13Z" fill="#fff"/><rect x="12.4" y="16.8" width="15.2" height="2.8" rx="1.4" fill="#FFE39A"/><rect x="12.4" y="19" width="3.3" height="8.5" rx="1" fill="#FFE39A"/><rect x="24.3" y="19" width="3.3" height="8.5" rx="1" fill="#FFE39A"/><circle cx="20" cy="22.6" r="4.6" fill="#fff"/><path d="M16.6 28h6.8L28 40H12Z" fill="#fff"/><rect class="leg l1" x="15.2" y="38.5" width="3.2" height="7.5" rx="1.5" fill="#fff"/><rect class="leg l2" x="21.6" y="38.5" width="3.2" height="7.5" rx="1.5" fill="#fff"/><path d="M23.5 31.5 29.5 33.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><rect x="28.6" y="33" width="5.6" height="7" rx="1.3" fill="#FFE39A"/><path d="M29.4 33a2 2 0 0 1 4 0" stroke="#fff" stroke-width="1.3" fill="none"/></svg></button>
     <p class="small" id="bestTitle" hidden></p>
   </div>
@@ -235,6 +235,41 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 (() => {
 'use strict';
 const T = THREE;
+
+/* ============================== TITLE IN THE PLAYER'S LANGUAGE ============================== */
+(function localizeTitle(){
+  const NAMES = {
+    ru: ['Принцесса Скролл', 'восхождение'],
+    en: ['Scroll Princess', 'the ascent'],
+    'zh-hans': ['卷轴公主', '登塔'],
+    'zh-hant': ['捲軸公主', '登塔'],
+    ja: ['スクロール姫', '塔をのぼる'],
+    ko: ['스크롤 공주', '탑 오르기'],
+    es: ['Princesa Scroll', 'el ascenso'],
+    pt: ['Princesa Scroll', 'a subida'],
+    fr: ['Princesse Scroll', "l'ascension"],
+    de: ['Scroll-Prinzessin', 'der Aufstieg'],
+    it: ['Principessa Scroll', "l'ascesa"],
+    tr: ['Kaydırma Prensesi', 'yükseliş'],
+    uk: ['Принцеса Скрол', 'сходження'],
+    be: ['Прынцэса Скрол', 'узыходжанне'],
+    kk: ['Скролл ханшайымы', 'өрлеу']
+  };
+  const pick = tag => {
+    tag = String(tag || '').toLowerCase();
+    if (tag.startsWith('zh')) return /hant|tw|hk|mo/.test(tag) ? 'zh-hant' : 'zh-hans';
+    const base = tag.split('-')[0];
+    return NAMES[base] ? base : null;
+  };
+  let lang = null;
+  try { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language])){ lang = pick(l); if (lang) break; } } catch(e){}
+  lang = lang || 'en';
+  const [name, sub] = NAMES[lang];
+  document.getElementById('gameTitle').textContent = name;
+  document.getElementById('gameSub').textContent = sub;
+  document.title = name;
+  document.documentElement.lang = lang === 'zh-hans' ? 'zh-Hans' : lang === 'zh-hant' ? 'zh-Hant' : lang;
+})();
 
 /* ============================== CONFIG ============================== */
 const CFG = {
