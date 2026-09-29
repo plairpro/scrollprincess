@@ -73,11 +73,11 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .btn.go:hover{background:linear-gradient(135deg,#FFC23A,#FF6A3D);box-shadow:0 9px 0 #C4541F;transform:translateY(-2px) scale(1.05)}
 .btn.go:active{transform:translateY(5px) scale(.98);box-shadow:0 2px 0 #B8335E}
 @keyframes glowpulse{50%{opacity:.9;transform:scale(1.06)}}
-.title-card{width:min(290px,100%);padding:18px 20px 20px;gap:6px;border-radius:26px}
+.title-card{width:min(290px,100%);padding:24px 22px 26px;gap:8px;border-radius:26px}
 .title-card h1{font-family:var(--f-script);font-weight:400;font-size:40px;line-height:.9;letter-spacing:.3px;padding-top:4px}
 .title-card .subtitle{font:800 11.5px var(--f-body);letter-spacing:4px;text-transform:uppercase;color:var(--lantern-deep);margin-top:-2px}
 .title-card p{font-size:13.5px;margin-top:6px}
-.title-card .btn.go{margin-top:14px}
+.title-card .btn.go{margin-top:22px}
 .toggles{display:flex;gap:12px;justify-content:center}
 .tgl{width:72px;padding:12px 0;border-radius:18px;border:0;background:#EEE6F7;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:5px;font:800 12.5px var(--f-body);cursor:pointer;transition:background .15s,color .15s,transform .1s}
 .tgl svg{width:30px;height:30px}
@@ -91,6 +91,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 34px !important;min-width:120px}
 .icon-btn svg{height:48px;width:auto;display:block}
 .icon-btn .ico{height:32px;width:32px;transition:transform .35s}
+.icon-btn .ico-play{height:34px;width:34px;margin-left:3px}
 .icon-btn:hover .ico{transform:rotate(-120deg)}
 .ico-walk .leg{transform-box:fill-box;transform-origin:50% 0}
 .ico-walk .l1{animation:stepA .6s ease-in-out infinite alternate}
@@ -98,8 +99,8 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .ico-walk{animation:bob .3s ease-in-out infinite alternate}
 @keyframes stepA{from{transform:rotate(22deg)}to{transform:rotate(-22deg)}}
 @keyframes bob{to{transform:translateY(-1.5px)}}
-.mini-card{width:min(260px,100%);padding:16px 18px 18px;gap:10px;align-items:center}
-.art{width:170px;height:auto;display:block}
+.mini-card{width:min(270px,100%);padding:22px 22px 24px;gap:22px;align-items:center}
+.art{width:180px;height:auto;display:block;border-radius:16px}
 .smoke{animation:smoke 2.4s ease-in-out infinite}
 @keyframes smoke{0%{opacity:0;transform:translateY(6px)}40%{opacity:.9}100%{opacity:0;transform:translateY(-10px)}}
 .swipe{width:112px;height:auto;display:block;margin:2px auto 26px;overflow:visible}
@@ -155,7 +156,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
   <div class="card title-card">
     <h1 id="gameTitle">Принцесса Скролл</h1>
     <div class="subtitle" id="gameSub">восхождение</div>
-    <button class="btn go icon-btn" id="startBtn" aria-label="Начать"><svg class="ico-walk" viewBox="0 0 40 48" aria-hidden="true"><path d="M20 1 27 18H13Z" fill="#fff"/><rect x="12.4" y="16.8" width="15.2" height="2.8" rx="1.4" fill="#FFE39A"/><rect x="12.4" y="19" width="3.3" height="8.5" rx="1" fill="#FFE39A"/><rect x="24.3" y="19" width="3.3" height="8.5" rx="1" fill="#FFE39A"/><circle cx="20" cy="22.6" r="4.6" fill="#fff"/><path d="M16.6 28h6.8L28 40H12Z" fill="#fff"/><rect class="leg l1" x="15.2" y="38.5" width="3.2" height="7.5" rx="1.5" fill="#fff"/><rect class="leg l2" x="21.6" y="38.5" width="3.2" height="7.5" rx="1.5" fill="#fff"/><path d="M23.5 31.5 29.5 33.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><rect x="28.6" y="33" width="5.6" height="7" rx="1.3" fill="#FFE39A"/><path d="M29.4 33a2 2 0 0 1 4 0" stroke="#fff" stroke-width="1.3" fill="none"/></svg></button>
+    <button class="btn go icon-btn" id="startBtn" aria-label="Начать"><svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19.2 12Z" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></button>
     <p class="small" id="bestTitle" hidden></p>
   </div>
 </div>
@@ -163,6 +164,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div class="panel" id="overP" hidden>
   <div class="card mini-card">
     <svg class="art" viewBox="0 0 120 124" aria-hidden="true">
+      <rect width="120" height="124" rx="16" fill="#2E3272"/><g fill="#FFF6D8"><circle cx="14" cy="17" r="1.1"/><circle cx="36" cy="10" r=".9"/><circle cx="103" cy="50" r="1"/><circle cx="22" cy="57" r=".8"/><circle cx="84" cy="12" r=".8"/></g><circle cx="101" cy="20" r="7" fill="#FFF4C9"/><circle cx="104" cy="17.6" r="6.2" fill="#2E3272"/>
       <path class="smoke" d="M60 58c-5-6 5-9 0-15s5-9 0-15" stroke="#B9B3CC" stroke-width="3" fill="none" stroke-linecap="round"/>
       <path d="M52 50h16l10 42H42Z" fill="#F8F5F1"/><rect x="42" y="89" width="36" height="4" rx="2" fill="#E2BE68"/>
       <rect x="49" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/><rect x="65" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/>
@@ -197,8 +199,9 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div class="panel" id="pauseP" hidden>
   <div class="card mini-card">
     <svg class="art" viewBox="0 0 150 112" aria-hidden="true">
+      <rect width="150" height="112" rx="16" fill="#2E3272"/><g fill="#FFF6D8"><circle cx="18" cy="16" r="1.1"/><circle cx="45" cy="9" r=".9"/><circle cx="129" cy="45" r="1"/><circle cx="27" cy="52" r=".8"/><circle cx="105" cy="11" r=".8"/></g><circle cx="126" cy="18" r="7" fill="#FFF4C9"/><circle cx="130" cy="15.7" r="6.2" fill="#2E3272"/>
       <defs><radialGradient id="glowS"><stop offset="0" stop-color="#FFE2A0" stop-opacity=".9"/><stop offset="1" stop-color="#FFE2A0" stop-opacity="0"/></radialGradient></defs>
-      <rect x="8" y="70" width="134" height="9" rx="2" fill="#6DB39A"/><rect x="8" y="69" width="134" height="3" rx="1.5" fill="#EFF7F4"/><rect x="8" y="79" width="134" height="27" rx="3" fill="#E3A08F"/>
+      <rect x="14" y="70" width="122" height="9" rx="2" fill="#6DB39A"/><rect x="14" y="69" width="122" height="3" rx="1.5" fill="#EFF7F4"/><rect x="14" y="79" width="122" height="24" rx="3" fill="#E3A08F"/>
       <circle cx="104" cy="60" r="20" fill="url(#glowS)"/>
       <rect x="98" y="64" width="12" height="6" rx="1.5" fill="#D9544A"/><rect x="99.5" y="54" width="9" height="10" rx="1.5" fill="#FFE2A0"/><path d="M98 54h12l-2-4h-8Z" fill="#D9544A"/><path d="M100.5 50a3.5 3.5 0 0 1 7 0" stroke="#5A4B4B" stroke-width="1.4" fill="none"/>
       <rect x="57" y="67" width="5.5" height="22" rx="2.5" fill="#F6D2BC"/><rect x="66" y="67" width="5.5" height="22" rx="2.5" fill="#F6D2BC"/>
@@ -211,7 +214,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
       <ellipse cx="57.8" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/><ellipse cx="71.2" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/>
       <path d="M64.5 1 75 28H54Z" fill="#F8F5F1"/><rect x="53" y="26.5" width="23" height="4" rx="2" fill="#E2BE68"/>
     </svg>
-    <button class="btn go icon-btn" id="resumeBtn" aria-label="Продолжить"><svg class="ico-walk" viewBox="0 0 40 48" aria-hidden="true"><path d="M20 1 27 18H13Z" fill="#fff"/><rect x="12.4" y="16.8" width="15.2" height="2.8" rx="1.4" fill="#FFE39A"/><rect x="12.4" y="19" width="3.3" height="8.5" rx="1" fill="#FFE39A"/><rect x="24.3" y="19" width="3.3" height="8.5" rx="1" fill="#FFE39A"/><circle cx="20" cy="22.6" r="4.6" fill="#fff"/><path d="M16.6 28h6.8L28 40H12Z" fill="#fff"/><rect class="leg l1" x="15.2" y="38.5" width="3.2" height="7.5" rx="1.5" fill="#fff"/><rect class="leg l2" x="21.6" y="38.5" width="3.2" height="7.5" rx="1.5" fill="#fff"/><path d="M23.5 31.5 29.5 33.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><rect x="28.6" y="33" width="5.6" height="7" rx="1.3" fill="#FFE39A"/><path d="M29.4 33a2 2 0 0 1 4 0" stroke="#fff" stroke-width="1.3" fill="none"/></svg></button>
+    <button class="btn go icon-btn" id="resumeBtn" aria-label="Продолжить"><svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19.2 12Z" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></button>
     <div class="toggles">
       <button class="tgl" id="sfxBtn" aria-pressed="true" aria-label="Звуки">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="w" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line class="x" x1="3" y1="3" x2="21" y2="21" stroke="#D9544A" stroke-width="2.4" stroke-linecap="round"/></svg>
