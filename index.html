@@ -645,14 +645,11 @@ function buildGirl(){
   });
   // hair: just two golden blocks beside the face, ending at shoulder level
   [-1, 1].forEach(sd => mesh(new T.BoxGeometry(.075, .32, .22), gold, sd * .185, -.08, -.02, head));
-  // hat: tall cone, thin gold band at the base, simple tapered veil plane behind
+  // hat: tall cone with a thin gold band at the base
   const hat = new T.Group(); hat.position.set(0, .11, -.01); hat.rotation.x = -.12; head.add(hat);
   mesh(new T.ConeGeometry(.21, .72, 10), white, 0, .36, 0, hat);
   const band = mesh(new T.CylinderGeometry(.215, .215, .035, 10), gold, 0, .01, 0, hat);
-  const veil = new T.Group(); veil.position.set(0, .3, -.1); hat.add(veil);
-  const vs = new T.Shape(); vs.moveTo(-.03, 0); vs.lineTo(.03, 0); vs.lineTo(.22, -.66); vs.lineTo(-.22, -.66); vs.closePath();
-  const vm = mesh(new T.ShapeGeometry(vs), new T.MeshStandardMaterial({ color: 0xEDEBFA, roughness: .95, side: T.DoubleSide }), 0, 0, 0, veil);
-  veil.rotation.x = .28;
+  const veil = new T.Group(); // no veil: just the hair blocks and the white hat
   // lantern hangs from both hands in front of her
   const pivot = new T.Group(); pivot.position.copy(hands).add(new T.Vector3(0, 0, .01)); body.add(pivot);
   const L0 = buildLantern(); L0.lamp.scale.setScalar(1.25); L0.lamp.position.set(0, -.14, .05); pivot.add(L0.lamp);
