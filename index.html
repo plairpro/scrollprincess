@@ -11,7 +11,7 @@
 <title>Девочка с лампой</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&family=Great+Vibes&family=Marck+Script&display=swap">
 <style>
 /* Layout: full-screen night diorama; UI floats as cream paper bubbles. One deliberate night world, same in both themes. */
 :root{
@@ -24,6 +24,7 @@
   --mint:#9ED8C4;
   --night:#1B1D52;
   --f-display:"Fredoka","Nunito",ui-rounded,"Arial Rounded MT Bold",system-ui,sans-serif;
+  --f-script:"Great Vibes","Marck Script","Segoe Script",cursive;
   --f-body:"Nunito",ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
@@ -72,6 +73,11 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .btn.go:hover{background:linear-gradient(135deg,#FFC23A,#FF6A3D);box-shadow:0 9px 0 #C4541F;transform:translateY(-2px) scale(1.05)}
 .btn.go:active{transform:translateY(5px) scale(.98);box-shadow:0 2px 0 #B8335E}
 @keyframes glowpulse{50%{opacity:.9;transform:scale(1.06)}}
+.title-card{width:min(290px,100%);padding:18px 20px 20px;gap:6px;border-radius:26px}
+.title-card h1{font-family:var(--f-script);font-weight:400;font-size:52px;line-height:1.05;letter-spacing:0;padding-top:4px}
+.title-card .subtitle{font:800 11.5px var(--f-body);letter-spacing:4px;text-transform:uppercase;color:var(--lantern-deep);margin-top:-2px}
+.title-card p{font-size:13.5px;margin-top:6px}
+.title-card .btn.go{font-size:20px;padding:12px 30px;margin-top:8px}
 .btn.alt{background:#7D7299;box-shadow:0 6px 0 #5E5580}
 .small{font-size:12.5px!important}
 .big{font-family:var(--f-display);font-weight:600;font-size:64px;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;font-variant-numeric:tabular-nums}
@@ -114,8 +120,9 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 </div>
 
 <div class="panel" id="titleP">
-  <div class="card">
+  <div class="card title-card">
     <h1>Принцесса Скролл</h1>
+    <div class="subtitle">восхождение</div>
     <p>Управляй скроллом</p>
     <button class="btn go" id="startBtn">Пошли!</button>
     <p class="small" id="bestTitle" hidden></p>
@@ -171,10 +178,10 @@ const CFG = {
   buildBehind: 26, buildAhead: 46, genAhead: 64,
   HAZ: {
     skeleton: { unlock: 20,  stand: 1.8, crumble: .45, pile: 1.35, tremble: .6, assemble: .4 },
-    raven:    { unlock: 40,  thr: 3.1, thrMin: 2.4, alert: .5 },
+    raven:    { unlock: 40,  thr: 2.6, thrMin: 2.0, alert: .12, swoopSpeed: 9 },
     crumble:  { unlock: 60,  shake: .8, gone: 3.2, restore: .45 },
     flock:    { unlock: 80,  period: 5.6, tele: 1.0, pass: 1.2 },
-    moths:    { unlock: 120, reach: 2.4, chase: 1.45 },
+    moths:    { unlock: 120, zone: 1.3, fast: 4.4, grace: .2 },
     hand:     { unlock: 150, period: 3.4, tele: .6, out: .25, hold: .55, back: .5 },
     gear:     { unlock: 200, omega: 1.1, omegaMax: 1.6, teeth: 4 }
   }
@@ -589,44 +596,60 @@ function buildLantern(){
   return { lamp, light, coreMat, halo };
 }
 function buildGirl(){
+  // Chibi princess from the user's reference: white A-line dress with gold trim, blonde blocky bob,
+  // tall white hennin with a gold band and diamond gem, a veil down the back, dark boots, red lantern in the right hand.
   const root = new T.Group(); const body = new T.Group(); root.add(body);
-  const skin = M(PAL.skin, { roughness: .8 }), dress = M(PAL.dress, { roughness: .8 }), hair = M(PAL.hair, { roughness: .75 }), hairTop = M(PAL.hairTop, { roughness: .7 });
+  const skin = M(PAL.skin, { roughness: .8 }), white = M(0xF8F5F1, { roughness: .72 }), gold = M(0xE2BE68, { roughness: .42, metalness: .35 });
+  const hair = M(0xF0D28A, { roughness: .68, flatShading: true }), boot = M(0x4A3833, { roughness: .8 });
   const legs = [-1, 1].map(sd => {
-    const piv = new T.Group(); piv.position.set(sd * .075, .42, 0); body.add(piv);
-    mesh(new T.CylinderGeometry(.05, .043, .36, 10), skin, 0, -.18, 0, piv);
-    const shoe = mesh(sphere(.07, 12, 8), M(PAL.shoe), 0, -.38, .03, piv); shoe.scale.set(1, .7, 1.35);
-    mesh(new T.CylinderGeometry(.07, .07, .025, 12), M(PAL.sole), 0, -.415, .03, piv).scale.z = 1.3;
+    const piv = new T.Group(); piv.position.set(sd * .06, .3, 0); body.add(piv);
+    mesh(new T.CylinderGeometry(.042, .048, .26, 10), boot, 0, -.13, 0, piv);
+    const toe = mesh(sphere(.05, 10, 8), boot, 0, -.27, .02, piv); toe.scale.set(1, .6, 1.25);
     return piv;
   });
-  const dressG = new T.Group(); dressG.position.y = .63; body.add(dressG);
-  mesh(new T.CylinderGeometry(.14, .31, .5, 20), dress, 0, 0, 0, dressG);
-  mesh(new T.CylinderGeometry(.312, .318, .035, 20), M(PAL.hem), 0, -.24, 0, dressG);
-  mesh(new T.CylinderGeometry(.135, .14, .1, 16), dress, 0, .29, 0, dressG);
-  [-1, 1].forEach(sd => mesh(new T.BoxGeometry(.035, .12, .03), dress, sd * .085, .39, 0, dressG));
-  const sh = mesh(sphere(.16, 14, 8), skin, 0, .99, 0, body); sh.scale.set(1.05, .38, .8);
-  mesh(new T.CylinderGeometry(.045, .05, .1, 8), skin, 0, 1.07, 0, body);
-  const hands = new T.Vector3(0, .72, .26);
+  const dressG = new T.Group(); dressG.position.y = .54; body.add(dressG);
+  mesh(new T.CylinderGeometry(.11, .3, .76, 28), white, 0, 0, 0, dressG);
+  mesh(new T.CylinderGeometry(.302, .306, .055, 28), gold, 0, -.35, 0, dressG);
+  const collar = mesh(new T.TorusGeometry(.085, .018, 8, 20), gold, 0, .925, 0, body); collar.rotation.x = Math.PI / 2;
+  mesh(new T.CylinderGeometry(.045, .05, .07, 10), skin, 0, .97, 0, body);
+  // sleeves with gold cuffs; the right hand carries the lantern
+  const handR = new T.Vector3();
   [-1, 1].forEach(sd => {
-    const s0 = new T.Vector3(sd * .16, .98, 0), el = new T.Vector3(sd * .15, .8, .13), hd = new T.Vector3(sd * .03, hands.y, hands.z);
-    body.add(cylBetween(s0, el, .038, .033, skin)); body.add(cylBetween(el, hd, .033, .03, skin));
-    mesh(sphere(.04, 8, 6), skin, hd.x, hd.y, hd.z, body);
+    const shoulder = new T.Vector3(sd * .1, .88, 0), cuff = new T.Vector3(sd * .19, .6, sd > 0 ? .07 : .02);
+    body.add(cylBetween(shoulder, cuff, .04, .085, white, 18));
+    const ring = new T.Mesh(new T.TorusGeometry(.083, .016, 8, 20), gold); ring.position.copy(cuff);
+    ring.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), cuff.clone().sub(shoulder).normalize()); body.add(ring);
+    const hand = cuff.clone().add(cuff.clone().sub(shoulder).normalize().multiplyScalar(.045));
+    mesh(sphere(.038, 10, 8), skin, hand.x, hand.y, hand.z, body);
+    if (sd > 0) handR.copy(hand);
   });
-  const head = new T.Group(); head.position.y = 1.27; body.add(head);
-  const face = mesh(sphere(.2, 20, 16), skin, 0, 0, 0, head); face.scale.set(1, 1.05, .96);
-  const gap = 2.1; mesh(new T.SphereGeometry(.224, 24, 12, Math.PI / 2 + gap / 2, Math.PI * 2 - gap, 0, Math.PI * .6), hairTop, 0, .02, -.01, head);
-  mesh(new T.SphereGeometry(.226, 24, 8, 0, Math.PI * 2, 0, Math.PI * .27), hairTop, 0, .025, -.01, head);
-  const bangs = mesh(sphere(.13, 14, 10), hairTop, 0, .13, .1, head); bangs.scale.set(1.45, .42, .75); bangs.rotation.x = -.35;
-  [-1, 1].forEach(sd => { const bl = mesh(sphere(.035, 8, 6), M(0xF4B4AE, { roughness: .9 }), sd * .1, -.05, .165, head); bl.scale.set(1.3, .7, .4); });
-  const back = new T.Group(); back.position.set(0, -.02, -.06); head.add(back);
-  mesh(new T.CylinderGeometry(.19, .25, .6, 18, 1, false, Math.PI * .6, Math.PI * 1.8), hair, 0, -.2, 0, back);
-  mesh(sphere(.25, 16, 10, 0), hair, 0, -.5, 0, back).scale.set(1, .25, .9);
-  const strands = [-1, 1].map(sd => { const s = mesh(new T.CylinderGeometry(.05, .065, .44, 10), hair, sd * .18, -.18, .05, head); s.rotation.z = sd * .06; return s; });
-  // lantern hangs from the hands
-  const pivot = new T.Group(); pivot.position.copy(hands); body.add(pivot);
-  const L0 = buildLantern(); L0.lamp.position.set(0, -.2, .02); pivot.add(L0.lamp);
+  // head
+  const head = new T.Group(); head.position.y = 1.15; body.add(head);
+  const face = mesh(sphere(.2, 24, 18), skin, 0, 0, 0, head); face.scale.set(1, 1.02, .95);
+  const eyeM = B(0x2A2230);
+  [-1, 1].forEach(sd => {
+    mesh(new T.CylinderGeometry(.013, .013, .058, 10), eyeM, sd * .066, -.005, .183, head).rotation.x = -.08;
+    const bl = mesh(sphere(.034, 10, 8), M(0xF3AFA8, { roughness: .95 }), sd * .112, -.06, .152, head); bl.scale.set(1.25, .62, .35);
+  });
+  // blocky blonde bob with straight bangs
+  const hairCap = mesh(new T.SphereGeometry(.218, 20, 10, 0, Math.PI * 2, 0, Math.PI * .5), hair, 0, .012, -.01, head); hairCap.scale.set(1.02, 1.08, 1.02);
+  mesh(new T.BoxGeometry(.36, .1, .09), hair, 0, .105, .15, head).rotation.x = -.25;
+  [-1, 1].forEach(sd => { const side = mesh(new T.BoxGeometry(.075, .42, .27), hair, sd * .19, -.1, -.005, head); side.rotation.z = sd * .05; });
+  mesh(new T.BoxGeometry(.4, .44, .1), hair, 0, -.1, -.155, head);
+  // hennin hat, gold band + gem, veil down the back
+  const hat = new T.Group(); hat.position.set(0, .165, -.03); hat.rotation.x = -.2; head.add(hat);
+  mesh(new T.ConeGeometry(.188, .64, 28), white, 0, .32, 0, hat);
+  const band = mesh(new T.TorusGeometry(.196, .028, 8, 28), gold, 0, .02, 0, hat); band.rotation.x = Math.PI / 2;
+  const gem = mesh(new T.OctahedronGeometry(.042, 0), M(0xF2D27E, { roughness: .3, metalness: .45 }), 0, .035, .215, hat); gem.scale.set(.8, 1.25, .45);
+  const veil = new T.Group(); veil.position.y = .64; hat.add(veil);
+  const veilM = new T.MeshStandardMaterial({ color: 0xF4F1FA, roughness: .9, side: T.DoubleSide, transparent: true, opacity: .93 });
+  mesh(new T.CylinderGeometry(0, .44, 1.2, 20, 1, true, Math.PI * .56, Math.PI * .88), veilM, 0, -.6, 0, veil);
+  // lantern hangs from the right hand
+  const pivot = new T.Group(); pivot.position.copy(handR); body.add(pivot);
+  const L0 = buildLantern(); L0.lamp.scale.setScalar(.95); L0.lamp.position.set(0, -.17, 0); pivot.add(L0.lamp);
   shadowAll(body, true, false);
   root.scale.setScalar(CFG.girlScale);
-  return { root, body, legs, dressG, head, back, strands, lamp: pivot, lcore: L0.lamp, light: L0.light, coreMat: L0.coreMat, halo: L0.halo };
+  return { root, body, legs, dressG, head, back: veil, strands: [], lamp: pivot, lcore: L0.lamp, light: L0.light, coreMat: L0.coreMat, halo: L0.halo };
 }
 const girl = buildGirl(); tower.add(girl.root);
 
@@ -712,46 +735,45 @@ function Skeleton(k, first){
   };
 }
 
-/* ---- 2. Raven on the rail ---- */
+/* ---- 2. Raven on the rail: attacks anyone who runs past, only a calm walk is safe ---- */
 function RavenPerch(k, first){
   const C = CFG.HAZ.raven;
   const root = new T.Group(); place(root, k, CFG.ROUT - .12, .6 + .12); tower.add(root);
   const r = buildRaven(1); r.g.rotation.y = -Math.PI / 4; root.add(r.g);
   const bang = bangSprite(); bang.position.set(0, .45, 0); root.add(bang);
-  let state = 'perch', tm = 0, p0 = null, pT = null, pOut = null; const prev = new T.Vector3();
+  let state = 'perch', tm = 0; const prev = new T.Vector3(), tgt = new T.Vector3();
   return {
     type: 'raven', k, len: 1, first,
     update(c){
       const thr = lerp(C.thr, C.thrMin, c.diff);
-      const d = k - c.s, near = d > -.3 && d < 3.4;
+      const d = k - c.s, near = d > -1.4 && d < 3.8;
       tm += c.dt;
       if (state === 'perch'){
         flap(r, c.t, 0, 0, 1);
         r.head.rotation.y = near ? clamp(-d * .25, -.8, .3) : Math.sin(c.t * .7 + k) * .4;
-        r.inner.position.y = (near && c.speed > thr * .7) ? Math.abs(Math.sin(c.t * 30)) * .02 : 0;
-        bang.visible = false;
-        if (near && c.speed > thr && G.state === 'play'){ state = 'alert'; tm = 0; AU.caw(.6); }
+        const nerv = near && c.speed > thr * .6;
+        r.inner.position.y = nerv ? Math.abs(Math.sin(c.t * 30)) * .025 : 0;
+        bang.visible = nerv; if (nerv) bang.scale.setScalar(.34 + (c.speed / thr) * .08);
+        if (near && c.speed > thr && G.state === 'play'){ state = 'alert'; tm = 0; AU.caw(1); }
       } else if (state === 'alert'){
-        r.inner.position.y = -.05; r.wings.forEach((w, i) => w.rotation.z = (i ? 1 : -1) * (-.7 + Math.sin(c.t * 25) * .15));
-        bang.visible = true; bang.scale.setScalar(.42 + Math.sin(tm * 20) * .04);
-        if (c.speed < thr * .75 && tm > .12){ state = 'perch'; bang.visible = false; }
-        else if (tm > C.alert){
-          state = 'swoop'; tm = 0; bang.visible = false; AU.caw(1);
-          tower.attach(r.g); p0 = r.g.position.clone();
-          pT = P(c.s + .1, CFG.RMID, .95 * CFG.girlScale); pOut = P(c.s - 3, CFG.ROUT + 5, 3.5);
-          prev.copy(p0);
-        }
+        r.inner.position.y = -.05; r.wings.forEach((w, i) => w.rotation.z = (i ? 1 : -1) * (-.5 + Math.sin(c.t * 30) * .2));
+        bang.visible = true; bang.scale.setScalar(.5);
+        if (tm > C.alert){ state = 'swoop'; tm = 0; bang.visible = false; tower.attach(r.g); prev.copy(r.g.position); }
       } else if (state === 'swoop'){
-        const u = tm / 1.0;
-        if (u >= 1){ state = 'gone'; r.g.visible = false; return; }
-        const pos = u < .45 ? new T.Vector3().lerpVectors(p0, pT, easeOut(u / .45)).add(new T.Vector3(0, Math.sin(u / .45 * Math.PI) * .3, 0))
-                            : new T.Vector3().lerpVectors(pT, pOut, ease((u - .45) / .55));
-        r.g.position.copy(pos);
-        const dir = pos.clone().sub(prev); if (dir.lengthSq() > 1e-6) r.g.lookAt(tower.localToWorld(pos.clone().add(dir)));
-        prev.copy(pos); flap(r, c.t, 22, .9);
+        // homes in on the princess; once it has launched it will not miss
+        girlCenterAt(c.s); tgt.copy(girlCenter);
+        const pos = r.g.position; const dir = tgt.clone().sub(pos); const dl = dir.length();
+        if (dl > 1e-4) pos.addScaledVector(dir, Math.min(1, C.swoopSpeed * c.dt / dl));
+        pos.y += Math.sin(tm * 18) * .01;
+        const mv = pos.clone().sub(prev); if (mv.lengthSq() > 1e-7) r.g.lookAt(tower.localToWorld(pos.clone().add(mv)));
+        prev.copy(pos); flap(r, c.t, 24, .95);
+        if (G.state !== 'play' && tm > .6){ state = 'leave'; tm = 0; }
+      } else if (state === 'leave'){
+        r.g.position.add(new T.Vector3(0, 2.2 * c.dt, 0)).addScaledVector(r.g.position.clone().setY(0).normalize(), 2.5 * c.dt);
+        flap(r, c.t, 16, .8); if (tm > 2.5) r.g.visible = false;
       }
     },
-    deadly(s){ if (state !== 'swoop') return false; girlCenterAt(s); return r.g.position.distanceTo(girlCenter) < .55; },
+    deadly(s){ if (state !== 'swoop') return false; girlCenterAt(s); return r.g.position.distanceTo(girlCenter) < .5; },
     dispose(){ tower.remove(root); if (r.g.parent) r.g.parent.remove(r.g); }
   };
 }
@@ -828,42 +850,42 @@ function Crumble(k, first){
   };
 }
 
-/* ---- 5. Moths drawn to the lamp ---- */
+/* ---- 5. Moth swarm over the stairs: run through fast, linger and they bite ---- */
 function Moths(k, first){
   const C = CFG.HAZ.moths; const rnd = mulberry32(k * 23 + 9);
   const g = new T.Group(); tower.add(g);
-  const home = P(k, CFG.RIN + .55, 1.3); const center = home.clone();
+  const home = P(k, CFG.RMID, 1.05); const center = home.clone();
   const ms = [];
-  for (let i = 0; i < 14; i++){
+  for (let i = 0; i < 22; i++){
     const m = new T.Group(); g.add(m);
     const wm = new T.MeshBasicMaterial({ color: PAL.moth[i % 4], side: T.DoubleSide });
     const wl = mesh(new T.CircleGeometry(.065, 3), wm, -.04, 0, 0, m), wr = mesh(new T.CircleGeometry(.065, 3), wm, .04, 0, 0, m);
     mesh(sphere(.02, 5, 4), B(0xFFF6DE), 0, 0, 0, m);
-    ms.push({ m, wl, wr, r: .18 + rnd() * .32, sp: 2 + rnd() * 2.5, ph: rnd() * 6.28, yv: (rnd() - .5) * .4 });
+    ms.push({ m, wl, wr, r: .2 + rnd() * .45, sp: 2 + rnd() * 2.5, ph: rnd() * 6.28, yv: (rnd() - .5) * .5 });
   }
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFF0C8, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .5 })); halo.scale.set(1.4, 1.4, 1); g.add(halo);
-  let state = 'home', cd = 0, spread = 1;
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFF0C8, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .5 })); halo.scale.set(1.8, 1.8, 1); g.add(halo);
+  let slow = 0, killed = false, buzzT = 0; const tgt = new T.Vector3();
   return {
     type: 'moths', k, len: 1, first,
-    get chasing(){ return state === 'chase'; },
     update(c){
-      if (cd > 0) cd -= c.dt; spread = lerp(spread, 1, 1 - Math.exp(-c.dt * 2));
-      const near = Math.abs(c.s - k) < C.reach && G.charges > 0 && G.state === 'play';
-      state = (near && cd <= 0) ? 'chase' : 'home';
-      const target = state === 'chase' ? c.lamp : home;
-      const sp = state === 'chase' ? C.chase * (1 + .4 * c.diff) : 2.6;
-      const d = target.clone().sub(center); const dl = d.length();
-      if (dl > 1e-4) center.addScaledVector(d, Math.min(1, sp * c.dt / dl));
-      if (state === 'chase' && center.distanceTo(c.lamp) < .4){ cd = 1.9; spread = 3.2; lampHit(); }
-      halo.position.copy(center);
+      const dist = Math.abs(c.s - k), inZone = dist < C.zone && G.state === 'play';
+      const fast = lerp(C.fast, C.fast + .8, c.diff);
+      if (inZone && !killed){ if (c.speed < fast) slow += c.dt; else slow = Math.max(0, slow - c.dt * 2); } else if (!killed) slow = 0;
+      if (!killed && slow > C.grace){ killed = true; AU.chime(); AU.noise(.6, .08, 'bandpass', 2600, 2); }
+      const agitated = dist < 3.2;
+      if (agitated && (buzzT -= c.dt) <= 0){ buzzT = .5; if (G.state === 'play') AU.noise(.25, .018 * (1.2 - dist / 3.2), 'bandpass', 3200 + Math.random() * 800, 6); }
+      if (killed){ girlCenterAt(c.s); tgt.copy(girlCenter); } else tgt.copy(home);
+      center.lerp(tgt, 1 - Math.exp(-c.dt * (killed ? 14 : 3)));
+      halo.position.copy(center); halo.material.opacity = agitated ? .75 : .45;
+      const spd = agitated ? 1.8 : 1, tight = killed ? .45 : 1;
       for (const q of ms){
-        const a = c.t * q.sp + q.ph; const rr = q.r * spread;
-        q.m.position.set(center.x + Math.cos(a) * rr, center.y + Math.sin(a * 1.3) * rr * .6 + q.yv * Math.sin(c.t + q.ph), center.z + Math.sin(a) * rr);
+        const a = c.t * q.sp * spd + q.ph; const rr = q.r * tight;
+        q.m.position.set(center.x + Math.cos(a) * rr, center.y + Math.sin(a * 1.3) * rr * .7 + q.yv * Math.sin(c.t + q.ph), center.z + Math.sin(a) * rr);
         q.m.lookAt(camera.position);
         const f = Math.sin(c.t * 34 + q.ph) * .9; q.wl.rotation.y = f; q.wr.rotation.y = -f;
       }
     },
-    deadly(){ return false; },
+    deadly(){ return killed; },
     dispose(){ tower.remove(g); }
   };
 }
@@ -957,19 +979,19 @@ const MAKERS = { skeleton: Skeleton, raven: RavenPerch, crumble: Crumble, flock:
 const ORDER = ['skeleton', 'raven', 'crumble', 'flock', 'moths', 'hand', 'gear'];
 const HINTS = {
   skeleton: 'Скелет рассыпается. Проходи, пока кости лежат',
-  raven: 'Ворон не любит спешки. Мимо него — медленно',
+  raven: 'Вороны бросаются на бегущих. Мимо — только медленно',
   crumble: 'Трещины! На таких ступенях не задерживайся',
   flock: 'Тени на ступенях — сейчас пролетит стая',
-  moths: 'Мотыльки летят на свет. Не подпускай их к лампе',
+  moths: 'Мотыльки кусают тех, кто медлит. Пробегай их быстро!',
   hand: 'Пыль из ниши — сейчас оттуда высунется рука',
   gear: 'Проходи между зубцами колеса'
 };
 const WHY = {
   skeleton: 'Скелет собрался прямо перед тобой и вежливо помахал.',
-  raven: 'Ворон не любит спешки. В следующий раз — тише.',
+  raven: 'Ворон бросился на бегущую принцессу. Мимо воронов — шагом.',
   flock: 'Стая пролетела сквозь лестницу. Тени были подсказкой.',
   crumble: 'Ступенька не дождалась, пока ты уйдёшь.',
-  moths: 'Мотыльки облепили лампу, и она погасла.',
+  moths: 'Мотыльки покусали тех, кто медлил. Сквозь рой — бегом.',
   hand: 'Рука из ниши поймала тебя за подол.',
   gear: 'Колесо не стало ждать.'
 };
@@ -1127,7 +1149,7 @@ function updateGirl(dt){
     g.body.rotation.x = 0; g.head.rotation.x = 0;
     g.dressG.rotation.z = moving ? Math.sin(ph) * .05 : 0;
   }
-  g.back.rotation.x = -amp * .25 + Math.sin(G.t * 3) * .03; g.strands.forEach(st => st.rotation.x = -amp * .2);
+  g.back.rotation.x = -amp * .22 + Math.sin(G.t * 2.2) * .03; g.back.rotation.z = Math.sin(G.t * 1.6) * .03; g.strands.forEach(st => st.rotation.x = -amp * .2);
   g.lamp.rotation.z = Math.sin(G.t * 2.4 + s) * .12 * (moving ? 1.6 : .6);
   g.lamp.rotation.x = Math.sin(G.t * 1.7) * .06 - amp * .15;
   if (G.flicker > 0) G.flicker -= dt;
@@ -1169,7 +1191,7 @@ function frame(now){
     const anyChase = hazards.some(h => h.type === 'moths' && h.chasing);
     if (G.charges < 3 && !anyChase){ G.regen += dt; if (G.regen > 3.5){ G.regen = 0; G.charges++; renderCharges(); AU.lampBack(); } } else G.regen = 0;
     const mothNear = hazards.some(h => h.type === 'moths' && Math.abs(h.k - G.s) < 6);
-    ui.charges.style.opacity = (G.charges < 3 || mothNear) ? 1 : 0;
+    ui.charges.style.opacity = 0;
     for (const h of hazards){ if (h.first && !G.hinted[h.type] && h.k - G.s < 7 && h.k - G.s > -1){ G.hinted[h.type] = true; store.set('lg_hints', G.hinted); toast(HINTS[h.type]); } }
   } else if (G.state === 'dead'){
     G.deadT += dt; G.speed = 0;
