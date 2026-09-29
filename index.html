@@ -101,6 +101,11 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .floor.on{opacity:1;transform:none}
 .floor small{display:block;font-family:var(--f-body);font-weight:800;font-size:13px;letter-spacing:2px;text-transform:uppercase;opacity:.9}
 .sndpill{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 20px);z-index:6;border:0;border-radius:99px;padding:9px 14px;background:var(--paper);color:var(--ink);font:800 13px var(--f-body);box-shadow:0 6px 18px rgba(8,8,40,.4);cursor:pointer}
+#mist{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0}
+.mult{padding:5px 12px 5px 14px;margin-right:16px;border-radius:99px;background:#F08BC8;color:#fff;font:800 14px var(--f-body);box-shadow:0 4px 14px rgba(240,139,200,.55);animation:bump 1s ease infinite}
+.endp{place-items:end center;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 36px)}
+.endp .card{width:min(300px,100%);padding:18px 20px;gap:8px;background:color-mix(in srgb,var(--paper) 90%,transparent)}
+.endp h2{font-family:var(--f-script);font-weight:400;font-size:34px}
 .dbg{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);font:12px/1.4 ui-monospace,Menlo,monospace;color:var(--ink);background:var(--paper);padding:6px 8px;border-radius:8px;z-index:7;white-space:pre}
 .hint-arrow{display:inline-block;animation:nudge 1.4s ease-in-out infinite}
 @keyframes nudge{50%{transform:translateY(-5px)}}
@@ -126,6 +131,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
       <svg viewBox="0 0 24 24" aria-label="шагов"><g fill="#4A3F6B"><ellipse cx="7.5" cy="8" rx="3" ry="4.6"/><ellipse cx="7.5" cy="16.2" rx="2.2" ry="1.9"/><ellipse cx="16.5" cy="6" rx="3" ry="4.6"/><ellipse cx="16.5" cy="14.2" rx="2.2" ry="1.9"/></g></svg>
     </div>
     <div class="charges" id="charges" aria-label="Заряд лампы"><i></i><i></i><i></i></div>
+    <div class="mult" id="multBadge" hidden>×2</div>
   </div>
 </div>
 
@@ -152,6 +158,14 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
   </div>
 </div>
 
+<div class="panel endp" id="endP" hidden>
+  <div class="card">
+    <h2>Маяк зажжён</h2>
+    <p>Тысяча ступеней позади. Свет принцессы виден теперь со всего королевства.</p>
+    <button class="btn go" id="endAgain">Сначала</button>
+  </div>
+</div>
+
 <div class="panel" id="pauseP" hidden>
   <div class="card">
     <h2>Пауза</h2>
@@ -171,6 +185,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 </div>
 
 <button class="sndpill" id="sndPill" hidden><svg viewBox="0 0 16 16" aria-hidden="true" width="14" height="14" style="vertical-align:-2px;margin-right:6px"><path d="M2 6h3l4-3v10L5 10H2z" fill="#4A3F6B"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.6 3.5a6 6 0 0 1 0 9" stroke="#4A3F6B" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>Нажми, чтобы включить звук</button>
+<div id="mist"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="floor" id="floor"></div>
 <div class="dbg" id="dbg" hidden></div>
@@ -207,6 +222,7 @@ const CFG = {
   }
 };
 CFG.RMID = (CFG.RIN + CFG.ROUT) / 2;
+const ROOF_S = 1000, POTION_S = 603; // 10 floors of 100 steps, then the roof
 const DA = Math.PI * 2 / CFG.stepsPerRev;
 const L = CFG.RMID * DA;
 const W = CFG.ROUT - CFG.RIN;
@@ -314,6 +330,8 @@ const AU = {
       } catch(e){}
     } else if (this.silentEl && this.silentEl.paused) this.silentEl.play().catch(() => {});
   },
+  sleep(){ try { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); if (this.silentEl) this.silentEl.pause(); } catch(e){} },
+  wake(){ try { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(() => {}); if (this.silentEl && this.silentEl.paused) this.silentEl.play().catch(() => {}); } catch(e){} },
   setSfx(v){ this.sfxOn = v; store.set('lg_sfx', v); if (this.sfx) this.sfx.gain.setTargetAtTime(v ? 1 : 0, this.ctx.currentTime, .05); },
   setMusic(v){ this.musOn = v; store.set('lg_music', v); if (this.mus) this.mus.gain.setTargetAtTime(v ? 1 : 0, this.ctx.currentTime, .08); },
   ok(){ return this.ctx && this.ctx.state === 'running'; },
@@ -555,7 +573,7 @@ function makeStep(j){
 function syncSteps(s){
   const lo = Math.floor(s) - CFG.buildBehind, hi = Math.floor(s) + CFG.buildAhead;
   for (const [j, g] of steps){ if (j < lo || j > hi){ tower.remove(g); steps.delete(j); } }
-  for (let j = Math.max(-6, lo); j <= hi; j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
+  for (let j = Math.max(-6, lo); j <= Math.min(hi, ROOF_S - 1); j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
 }
 function clearSteps(){ for (const [, g] of steps) tower.remove(g); steps.clear(); }
 
@@ -625,6 +643,29 @@ const dotTex = glowTex(255, 226, 160);
 const flyTex = glowTex(210, 245, 120);
 const flies = new T.Points(flyGeo, new T.PointsMaterial({ size: .34, map: flyTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: 0xD6F58A }));
 scene.add(flies);
+
+/* ---- roof with a magic brazier that becomes a lighthouse ---- */
+const ROOF_Y = 1000 * CFG.H;
+const roof = new T.Group(); roof.position.y = ROOF_Y; tower.add(roof);
+mesh(new T.CylinderGeometry(CFG.ROUT + .3, CFG.RIN + .2, .9, 36), M(PAL.cliff), 0, -.45, 0, roof).receiveShadow = true;
+const roofTop = mesh(new T.CylinderGeometry(CFG.ROUT + .32, CFG.ROUT + .32, .06, 36), M(PAL.grass), 0, -.02, 0, roof); roofTop.receiveShadow = true;
+mesh(new T.TorusGeometry(CFG.ROUT + .3, .05, 6, 40), M(PAL.frost), 0, .02, 0, roof).rotation.x = Math.PI / 2;
+for (let i = 0; i < 18; i++){ // merlons with a gap where the stairs arrive
+  const a = i / 18 * Math.PI * 2; if (Math.abs(Math.atan2(Math.sin(a - ROOF_S * DA), Math.cos(a - ROOF_S * DA))) < .45) continue;
+  const m = mesh(new T.BoxGeometry(.45, .42, .3), M(PAL.wall), Math.sin(a) * (CFG.ROUT + .12), .2, Math.cos(a) * (CFG.ROUT + .12), roof); m.rotation.y = a; m.castShadow = true;
+}
+const brazier = new T.Group(); roof.add(brazier);
+mesh(new T.CylinderGeometry(.42, .55, .5, 12), M(PAL.wall), 0, .25, 0, brazier).castShadow = true;
+mesh(new T.CylinderGeometry(.62, .38, .28, 14), M(PAL.band), 0, .64, 0, brazier).castShadow = true;
+mesh(new T.TorusGeometry(.62, .05, 6, 20), M(0xE2BE68, { metalness: .4, roughness: .4 }), 0, .78, 0, brazier).rotation.x = Math.PI / 2;
+for (let i = 0; i < 7; i++) mesh(new T.DodecahedronGeometry(.1 + hash(i) * .05, 0), M(0x3A2E3E, { flatShading: true }), Math.cos(i * 2.4) * .28, .78, Math.sin(i * 2.4) * .28, brazier);
+const flame = new T.Group(); flame.position.y = .8; flame.scale.setScalar(.001); brazier.add(flame);
+const flameMs = [0xFFE48A, 0xFFB24A, 0xFF7A3A].map((c, i) => { const m = new T.MeshBasicMaterial({ color: c, transparent: true, opacity: .9 - i * .15, blending: T.AdditiveBlending, depthWrite: false }); mesh(new T.ConeGeometry(.34 - i * .08, 1.1 - i * .25, 10), m, 0, .5 - i * .08, 0, flame); return m; });
+const flameHalo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFD27A, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 })); flameHalo.scale.set(4, 4, 1); flameHalo.position.y = 1.2; brazier.add(flameHalo);
+const fireLight = new T.PointLight(0xFFB870, 0, 16, 1.6); fireLight.position.y = 1.4; brazier.add(fireLight);
+const beam = new T.Group(); beam.position.y = 1.35; brazier.add(beam);
+const beamM = new T.MeshBasicMaterial({ color: 0xFFE9B0, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
+[-1, 1].forEach(sd => { const cone = new T.Mesh(new T.ConeGeometry(1.6, 26, 20, 1, true), beamM); cone.rotation.z = sd * Math.PI / 2; cone.position.x = sd * 13; beam.add(cone); });
 
 /* ============================== GIRL ============================== */
 function buildLantern(){
@@ -1109,7 +1150,7 @@ function Gear(k, first){
 
 /* ---- 8. Skeleton knight (after floor 5): stands guard, swings at whoever comes close,
    crumbles after the blow; slip past while the bones lie, or it reassembles ---- */
-function Knight(k, first){
+function Knight(k, first, kneel = false){
   const C = CFG.HAZ.knight; const rnd = mulberry32(k * 29 + 3);
   const root = new T.Group(); place(root, k, CFG.RMID + .05); tower.add(root);
   const tmp = new T.Group(); tmp.rotation.y = -Math.PI / 2 + .55; root.add(tmp);   // faces down the stairs, toward her
@@ -1159,11 +1200,24 @@ function Knight(k, first){
   const armRest = baseArmQ.clone().multiply(guardQ.clone().invert());          // shoulder frame without the guard swing
   const poseArm = ang => { armData.m.quaternion.copy(armRest).multiply(new T.Quaternion().setFromEuler(new T.Euler(ang, 0, 0))); };
   const snapStart = () => data.forEach(dd => { dd.S.p.copy(dd.m.position); dd.S.q.copy(dd.m.quaternion); });
+  const upper = data.filter(dd => dd.A.p.y > .35), lower = data.filter(dd => dd.A.p.y <= .35), baseYaw = root.rotation.y;
+  const PLANT = -.18;
   return {
-    type: 'knight', k, len: 1, first,
+    type: kneel ? 'kneel' : 'knight', k, len: 1, first,
     get state(){ return state; },
     update(c){
       tm += c.dt; const d = k - c.s, near = Math.abs(d) < 9;
+      if (kneel){
+        // floor 10: the knight steps to the wall, kneels and plants his sword to let the princess pass
+        if (state === 'guard'){ poseArm(GUARD + Math.sin(c.t * 2 + k) * .06); if (G.state === 'play' && d < 3.4 && d > -1){ state = 'bow'; tm = 0; AU.tone(330, 'triangle', .6, .04); AU.tone(495, 'triangle', .6, .03, .12); } return; }
+        const e = ease(clamp(tm / 1.1, 0, 1));
+        root.position.copy(P(k, lerp(CFG.RMID + .05, CFG.RIN + .42, e)));
+        root.rotation.y = baseYaw + 1.0 * e;
+        upper.forEach(dd => { dd.m.position.copy(dd.A.p); dd.m.position.y -= .34 * e; });
+        lower.forEach((dd, i) => { dd.m.position.copy(dd.A.p); dd.m.position.y *= 1 - .6 * e; dd.m.scale.y = 1 - .55 * e; if (i % 2) dd.m.position.x += .12 * e; }); // one knee forward
+        poseArm(lerp(GUARD, PLANT, e));
+        return;
+      }
       const windup = lerp(C.windup, C.windupMin, c.diff);
       if (state === 'guard'){
         poseArm(GUARD + Math.sin(c.t * 2 + k) * .06);
@@ -1196,6 +1250,7 @@ function Knight(k, first){
       }
     },
     deadly(s){
+      if (kneel) return false;
       const d = k - s;
       if ((state === 'guard' || state === 'windup') && Math.abs(d) < .55) return true;        // walked into the knight
       if (state === 'strike' && tm > C.strike * .45 && d > -.3 && d < C.reach) return true;   // caught by the blade
@@ -1206,11 +1261,39 @@ function Knight(k, first){
   };
 }
 
-const MAKERS = { skeleton: Skeleton, raven: RavenPerch, crumble: Crumble, flock: Flock, moths: Moths, hand: Hand, gear: Gear, knight: Knight };
+/* ---- Speed potion on floor 7: walking over it doubles speed until floor 8 ---- */
+function Potion(k){
+  const g = new T.Group(); place(g, k, CFG.RMID, .32); tower.add(g);
+  const glass = new T.MeshStandardMaterial({ color: 0xF59BD2, emissive: 0xE0409A, emissiveIntensity: .7, roughness: .25, transparent: true, opacity: .92 });
+  const bottle = new T.Group(); g.add(bottle);
+  mesh(sphere(.13, 14, 10), glass, 0, 0, 0, bottle);
+  mesh(new T.CylinderGeometry(.04, .05, .12, 10), glass, 0, .15, 0, bottle);
+  mesh(new T.CylinderGeometry(.045, .045, .05, 10), M(0xB9895F), 0, .23, 0, bottle);
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFF8FD0, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .8 }));
+  halo.scale.set(.8, .8, 1); g.add(halo);
+  const light = new T.PointLight(0xFF7AC8, .9, 3, 2); g.add(light);
+  shadowAll(bottle, true);
+  let taken = false, tt = 0;
+  return {
+    type: 'potion', k, len: 1, first: false,
+    update(c){
+      if (!taken){
+        bottle.position.y = Math.sin(c.t * 2.4) * .06; bottle.rotation.y += c.dt * 1.2;
+        halo.material.opacity = .6 + Math.sin(c.t * 4) * .2;
+        if (G.state === 'play' && c.s >= k - .25){ taken = true; drinkPotion(); }
+      } else if (tt < .6){ tt += c.dt; const u = tt / .6; bottle.scale.setScalar(1 + u); bottle.position.y = u * .6; halo.material.opacity = .8 * (1 - u); glass.opacity = .92 * (1 - u); light.intensity = .9 * (1 - u); if (u >= 1) g.visible = false; }
+    },
+    deadly(){ return false; },
+    dispose(){ tower.remove(g); }
+  };
+}
+
+const MAKERS = { skeleton: Skeleton, raven: RavenPerch, crumble: Crumble, flock: Flock, moths: Moths, hand: Hand, gear: Gear, knight: Knight, kneel: (k, f) => Knight(k, f, true) };
 const ORDER = ['skeleton', 'raven', 'crumble', 'flock', 'moths', 'hand', 'knight'];
 const HINTS = {
   skeleton: 'Скелет рассыпается. Проходи, пока кости лежат',
   knight: 'Рыцарь замахнулся — отступи! Рассыплется после удара — беги мимо',
+  kneel: 'Рыцари уступают дорогу принцессе',
   raven: 'Вороны бросаются на бегущих. Увидишь «!» — сбавь шаг',
   crumble: 'Трещины! На таких ступенях не задерживайся',
   flock: 'Тени на ступенях — сейчас пролетит стая',
@@ -1229,19 +1312,32 @@ const WHY = {
   gear: 'Колесо не стало ждать.'
 };
 
-const gen = { rng: null, next: 22, shown: {}, last: '' };
-function resetGen(seed){ gen.rng = mulberry32(seed); gen.next = 22; gen.shown = {}; gen.last = ''; }
+// Floor n covers steps (n-1)*100 … n*100-1. Each floor adds one new threat; floor 10 has only bowing knights.
+const POOLS = [null,
+  ['skeleton', 'crumble'],
+  ['skeleton', 'crumble', 'raven'],
+  ['skeleton', 'crumble', 'raven', 'hand'],
+  ['skeleton', 'crumble', 'raven', 'hand', 'moths'],
+  ['skeleton', 'crumble', 'raven', 'hand', 'moths', 'flock'],
+  ['skeleton', 'crumble', 'raven', 'hand', 'moths', 'flock', 'knight']];
+function poolFor(k){ const f = Math.floor(k / 100) + 1; return f >= 10 ? ['kneel'] : POOLS[Math.min(f, 6)]; }
+const FLOOR_NOTES = { 7: 'Седьмой этаж: на лестнице зелье скорости', 8: 'Туман! Видно только то, что освещает фонарь', 9: 'Девятый этаж. Все обитатели башни здесь', 10: 'Последний этаж. Рыцари встречают принцессу' };
+const gen = { rng: null, next: 22, shown: {}, last: '', potion: false };
+function resetGen(seed){ gen.rng = mulberry32(seed); gen.next = 22; gen.shown = {}; gen.last = ''; gen.potion = false; }
 function generate(uptoS){
-  while (gen.next < uptoS){
+  while (gen.next < uptoS && gen.next < ROOF_S - 6){
     const k = gen.next; const diff = clamp(k / 900, 0, 1);
-    const unlocked = ORDER.filter(t => k >= CFG.HAZ[t].unlock);
+    if (!gen.potion && k + 10 > POTION_S){ const pk = Math.max(k, POTION_S); hazards.push(Potion(pk)); gen.potion = true; gen.next = pk + 6; continue; }
+    const floorStart = Math.floor(k / 100) * 100;
+    if (k >= 900 && k < 1000){ const h = MAKERS.kneel(k, !gen.shown.kneel); gen.shown.kneel = true; hazards.push(h); gen.next = k + 7 + Math.floor(gen.rng() * 9); continue; }
+    if (k - floorStart < 4 && floorStart > 0){ gen.next = floorStart + 4; continue; }  // breathing room at each floor start
+    const unlocked = poolFor(k);
     let type = unlocked.find(t => !gen.shown[t]);
     const first = !!type;
     if (!type){ const pool = unlocked.filter(t => t !== gen.last); type = pool[Math.floor(gen.rng() * pool.length)] || unlocked[0]; }
     gen.shown[type] = true; gen.last = type;
-    const kk = type === 'gear' ? k + 1 : k;
-    const h = MAKERS[type](kk, first); hazards.push(h);
-    const len = type === 'gear' ? 4 : h.len;
+    const h = MAKERS[type](k, first); hazards.push(h);
+    const len = h.len;
     gen.next = k + len + (first ? 11 : Math.round(lerp(10, 5.5, diff) + gen.rng() * 3.5));
   }
 }
@@ -1249,10 +1345,10 @@ function pruneHazards(s){ for (let i = hazards.length - 1; i >= 0; i--){ const h
 function clearHazards(){ hazards.forEach(h => h.dispose()); hazards.length = 0; skipSteps.clear(); wallBusy.clear(); }
 
 /* ============================== GAME STATE ============================== */
-const G = { state: 'title', s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', best: store.get('lg_best', 0), lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, hinted: store.get('lg_hints2', {}), newRec: false, sit: 0 };
+const G = { state: 'title', s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', best: store.get('lg_best', 0), lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, hinted: store.get('lg_hints2', {}), newRec: false, sit: 0, mult: 1, endT: 0 };
 const $ = id => document.getElementById(id);
 const ui = { hud: $('hud'), score: $('score'), ribbon: $('ribbon'), charges: $('charges'), titleP: $('titleP'), overP: $('overP'), pauseP: $('pauseP'),
-  overScore: $('overScore'), overBest: $('overBest'), overWhy: $('overWhy'), toast: $('toast'), floor: $('floor'), dbg: $('dbg'), bestTitle: $('bestTitle'), sfxBtn: $('sfxBtn'), musBtn: $('musBtn') };
+  overScore: $('overScore'), overBest: $('overBest'), overWhy: $('overWhy'), toast: $('toast'), floor: $('floor'), dbg: $('dbg'), bestTitle: $('bestTitle'), sfxBtn: $('sfxBtn'), musBtn: $('musBtn'), mist: $('mist'), multBadge: $('multBadge'), endP: $('endP') };
 ui.bestTitle.textContent = G.best ? `Рекорд: ${G.best} шагов` : '';
 function syncToggles(){ ui.sfxBtn.setAttribute('aria-pressed', String(AU.sfxOn)); ui.musBtn.setAttribute('aria-pressed', String(AU.musOn)); }
 syncToggles();
@@ -1271,7 +1367,9 @@ function lampHit(){
 function reset(){
   clearHazards(); clearSteps();
   resetGen((Math.random() * 1e9) | 0);
-  Object.assign(G, { s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, newRec: false, sit: 0 });
+  Object.assign(G, { s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, newRec: false, sit: 0, mult: 1, endT: 0 });
+  ui.multBadge.hidden = true; ui.endP.hidden = true; ui.mist.style.opacity = 0; zoom = 1;
+  flame.scale.setScalar(.001); fireLight.intensity = 0; flameHalo.material.opacity = 0; beamM.opacity = 0;
   camS = G.s; camY = G.s * CFG.H;
   renderCharges(); ui.score.textContent = '0';
   generate(G.s + CFG.genAhead); syncSteps(G.s);
@@ -1280,7 +1378,7 @@ function start(){
   AU.unlock(); AU.start();
   if (G.state !== 'title') reset();
   G.state = 'play'; G.pending = 0;
-  ui.titleP.hidden = true; ui.overP.hidden = true; ui.pauseP.hidden = true; ui.hud.hidden = false;
+  ui.titleP.hidden = true; ui.overP.hidden = true; ui.pauseP.hidden = true; ui.endP.hidden = true; ui.hud.hidden = false;
   try { canvas.focus({ preventScroll: true }); } catch(e){}
 }
 function die(cause){
@@ -1296,6 +1394,39 @@ function showOver(){
   ui.overWhy.textContent = WHY[G.cause] || '';
   ui.overP.hidden = false; ui.hud.hidden = true;
 }
+function drinkPotion(){
+  G.mult = 2; ui.multBadge.hidden = false;
+  toast('Зелье скорости! Всё вдвое быстрее до 8 этажа', 3);
+  AU.tone(784, 'triangle', .5, .06); AU.tone(1175, 'triangle', .6, .05, .1); AU.tone(1568, 'sine', .7, .04, .2);
+}
+function startEnding(){
+  G.state = 'ending'; G.endT = 0; G.pending = 0; G.speed = 0; G.mult = 1; ui.multBadge.hidden = true;
+  G.s = ROOF_S - .4; G.maxS = ROOF_S; ui.score.textContent = String(ROOF_S);
+  if (ROOF_S > G.best){ G.best = ROOF_S; store.set('lg_best', ROOF_S); }
+  G.endFrom = P(G.s, CFG.RMID); const a = ROOF_S * DA + .15;
+  G.endTo = new T.Vector3(Math.sin(a) * 1.05, ROOF_Y, Math.cos(a) * 1.05); G.endLit = false;
+}
+function updateEnding(dt){
+  G.endT += dt; const t = G.endT;
+  const u = ease(clamp(t / 2.2, 0, 1));
+  const pos = new T.Vector3().lerpVectors(G.endFrom, G.endTo, u); pos.y = lerp(G.endFrom.y, ROOF_Y, clamp(t / .5, 0, 1));
+  girl.root.position.copy(pos); girl.root.rotation.y = Math.atan2(-pos.x, -pos.z);
+  const walking = t < 2.2; G.speed = walking ? 2 : 0;
+  const ph = t * 5.5;
+  girl.legs[0].rotation.x = walking ? Math.sin(ph) * .55 : 0; girl.legs[1].rotation.x = walking ? -Math.sin(ph) * .55 : 0;
+  girl.body.position.y = walking ? Math.abs(Math.sin(ph)) * .03 : 0;
+  if (t > 2.4 && t < 3.2) girl.lamp.rotation.x = -Math.sin((t - 2.4) / .8 * Math.PI) * .7;   // she raises the lantern to the coals
+  if (t > 2.8 && !G.endLit){ G.endLit = true; AU.chime(); AU.musicBox(); AU.newProg(); }
+  if (G.endLit){
+    const f = ease(clamp((t - 2.8) / 1.4, 0, 1));
+    flame.scale.set(f * (1 + Math.sin(t * 9) * .06), f * (1 + Math.sin(t * 7.3) * .1), f * (1 + Math.cos(t * 8.1) * .06));
+    flame.rotation.y += dt * 1.5;
+    fireLight.intensity = 3.2 * f; flameHalo.material.opacity = .85 * f;
+    beamM.opacity = .16 * ease(clamp((t - 4) / 2, 0, 1));
+    beam.rotation.y += dt * .55;
+  }
+  if (t > 6.5 && ui.endP.hidden){ ui.endP.hidden = false; ui.hud.hidden = true; }
+}
 function pause(on){
   if (on && G.state === 'play'){ G.state = 'paused'; ui.pauseP.hidden = false; AU.duck(true); }
   else if (!on && G.state === 'paused'){ G.state = 'play'; ui.pauseP.hidden = true; G.pending = 0; AU.init(); AU.duck(false); }
@@ -1303,7 +1434,7 @@ function pause(on){
 
 /* ============================== INPUT ============================== */
 function feed(steps){
-  if (G.state === 'play') G.pending = clamp(G.pending + steps, -CFG.pendingCap, CFG.pendingCap);
+  if (G.state === 'play') G.pending = clamp(G.pending + steps * G.mult, -CFG.pendingCap * G.mult, CFG.pendingCap * G.mult);
   else if (G.state === 'title'){ if (steps > 0){ G.restartAcc += steps; if (G.restartAcc > .8){ G.restartAcc = 0; start(); } } }
   else if (G.state === 'dead' && G.deadT > 1.0){ if (steps > 0){ G.restartAcc += steps; if (G.restartAcc > 1.2){ G.restartAcc = 0; start(); } } }
 }
@@ -1335,17 +1466,20 @@ window.addEventListener('keyup', e => { keys[e.key] = false; });
 $('startBtn').addEventListener('click', start);
 $('againBtn').addEventListener('click', start);
 $('pauseBtn').addEventListener('click', () => pause(true));
+$('endAgain').addEventListener('click', () => { G.state = 'over'; start(); });
 $('resumeBtn').addEventListener('click', () => pause(false));
 ui.sfxBtn.addEventListener('click', () => { AU.unlock(); AU.setSfx(!AU.sfxOn); syncToggles(); });
 ui.musBtn.addEventListener('click', () => { AU.unlock(); AU.setMusic(!AU.musOn); syncToggles(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) pause(true); else if (AU.ctx && AU.ctx.state !== 'running') AU.ctx.resume().catch(() => {}); });
-['touchend', 'click', 'keydown', 'pointerup'].forEach(ev => document.addEventListener(ev, () => { if (!AU.ok()) AU.unlock(); }, { capture: true, passive: true }));
+document.addEventListener('visibilitychange', () => { if (document.hidden){ pause(true); AU.sleep(); } else AU.wake(); });
+window.addEventListener('pagehide', () => AU.sleep());
+window.addEventListener('pageshow', () => { if (!document.hidden) AU.wake(); });
+['touchend', 'click', 'keydown', 'pointerup'].forEach(ev => document.addEventListener(ev, () => { if (!AU.ok() && !document.hidden) AU.unlock(); }, { capture: true, passive: true }));
 const sndPill = $('sndPill');
 sndPill.addEventListener('click', () => { AU.unlock(); });
 setInterval(() => { sndPill.hidden = !((AU.sfxOn || AU.musOn) && G.state !== 'title' && !AU.ok()); }, 500);
 
 /* ============================== LOOP ============================== */
-let camS = G.s, camY = G.s * CFG.H;
+let camS = G.s, camY = G.s * CFG.H, zoom = 1;
 const lampLocal = new T.Vector3(), tmpV = new T.Vector3();
 
 function resize(){
@@ -1355,19 +1489,32 @@ function resize(){
 window.addEventListener('resize', resize); resize();
 
 function placeCamera(dt){
-  camS = lerp(camS, G.s, 1 - Math.exp(-dt * 6)); camY = lerp(camY, G.s * CFG.H, 1 - Math.exp(-dt * 4));
+  if (G.state === 'ending'){ camS += dt * .35; camY = lerp(camY, ROOF_Y + .6, 1 - Math.exp(-dt * 1.2)); }
+  else { camS = lerp(camS, G.s, 1 - Math.exp(-dt * 6)); camY = lerp(camY, G.s * CFG.H, 1 - Math.exp(-dt * 4)); }
   tower.rotation.y = CFG.base - camS * DA;
   const vf = camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
-  const dist = Math.max((CFG.viewW / 2) / Math.tan(hf / 2), (CFG.viewH / 2) / Math.tan(vf / 2));
+  zoom = lerp(zoom, G.state === 'ending' ? 1.9 : 1, 1 - Math.exp(-dt * .8));
+  const dist = zoom * Math.max((CFG.viewW / 2) / Math.tan(hf / 2), (CFG.viewH / 2) / Math.tan(vf / 2));
   const target = new T.Vector3(.75, camY + 1.35, 1.1);
   const dir = new T.Vector3(.12, .36, 1).normalize();
   camera.position.copy(target).addScaledVector(dir, dist);
   camera.lookAt(target);
   scene.fog.near = dist - 2; scene.fog.far = dist + 22;
-  const yb = Math.round(camY / 10) * 10; core.position.y = yb;
+  const yb = Math.round(camY / 10) * 10, top = Math.min(yb + 35, ROOF_Y - .5), bot = yb - 35;
+  core.scale.y = Math.max(.01, (top - bot) / 70); core.position.y = (top + bot) / 2;
   ground.rotation.y = tower.rotation.y; ground.position.y = -Math.max(0, camY - 3) * 1.6; ground.visible = camY < 14;
 }
 
+// Fog on floor 8: everything is veiled except a circle around the princess's lantern.
+const _sp = new T.Vector3();
+function updateMist(){
+  const s = G.s, m = G.state === 'ending' ? 0 : clamp((s - 700) / 12, 0, 1) * clamp((800 - s) / 12, 0, 1);
+  if (m <= .001){ if (ui.mist.style.opacity !== '0') ui.mist.style.opacity = 0; return; }
+  girl.root.getWorldPosition(_sp); _sp.y += .7; _sp.project(camera);
+  const x = (_sp.x * .5 + .5) * window.innerWidth, y = (-_sp.y * .5 + .5) * window.innerHeight, R = Math.min(window.innerWidth, window.innerHeight) * .19;
+  ui.mist.style.background = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, rgba(64,60,116,0) 0px, rgba(64,60,116,0) ${(R * .95).toFixed(0)}px, rgba(58,55,108,.8) ${(R * 1.8).toFixed(0)}px, rgba(46,44,92,.97) ${(R * 2.8).toFixed(0)}px)`;
+  ui.mist.style.opacity = m.toFixed(3);
+}
 function updateGirl(dt){
   const g = girl, s = G.s;
   place(g.root, s, CFG.RMID, 0); g.root.rotation.y = s * DA + Math.PI / 2 - .32;
@@ -1407,8 +1554,8 @@ function frame(now){
 
   if (G.state === 'play'){
     let kv = 0; if (keys.ArrowUp || keys.ArrowRight) kv += 1; if (keys.ArrowDown || keys.ArrowLeft) kv -= 1;
-    if (kv) G.pending = clamp(G.pending + kv * CFG.keySpeed * dt, -CFG.pendingCap, CFG.pendingCap);
-    const maxMove = CFG.maxSpeed * dt;
+    if (kv) G.pending = clamp(G.pending + kv * CFG.keySpeed * G.mult * dt, -CFG.pendingCap * G.mult, CFG.pendingCap * G.mult);
+    const maxMove = CFG.maxSpeed * G.mult * dt;
     let move = clamp(G.pending, -maxMove, maxMove);
     if (G.s + move < 0){ move = -G.s; G.pending = 0; }
     G.pending -= move; if (Math.abs(G.pending) < .002) G.pending = 0;
@@ -1423,12 +1570,16 @@ function frame(now){
     const stepI = Math.floor(G.s);
     if (stepI !== G.lastStep){ AU.step(stepI); G.lastStep = stepI; }
     const sc = String(Math.floor(G.maxS)); if (ui.score.textContent !== sc) ui.score.textContent = sc;
-    const fl = Math.floor(G.maxS / 100); if (fl > G.floor){ G.floor = fl; floorBanner(fl + 1); AU.musicBox(); AU.newProg(); ui.ribbon.classList.remove('bump'); void ui.ribbon.offsetWidth; ui.ribbon.classList.add('bump'); }
+    const fl = Math.floor(G.maxS / 100); if (fl > G.floor && fl < 10){ G.floor = fl; floorBanner(fl + 1); AU.musicBox(); AU.newProg(); ui.ribbon.classList.remove('bump'); void ui.ribbon.offsetWidth; ui.ribbon.classList.add('bump'); if (FLOOR_NOTES[fl + 1]) toast(FLOOR_NOTES[fl + 1], 3.4); }
+    if (G.mult > 1 && G.s >= 700){ G.mult = 1; ui.multBadge.hidden = true; toast('Действие зелья закончилось', 2.4); }
+    if (G.s >= ROOF_S - .4) startEnding();
     const anyChase = hazards.some(h => h.type === 'moths' && h.chasing);
     if (G.charges < 3 && !anyChase){ G.regen += dt; if (G.regen > 3.5){ G.regen = 0; G.charges++; renderCharges(); AU.lampBack(); } } else G.regen = 0;
     const mothNear = hazards.some(h => h.type === 'moths' && Math.abs(h.k - G.s) < 6);
     ui.charges.style.opacity = 0;
     for (const h of hazards){ if (h.first && !G.hinted[h.type] && h.k - G.s < 7 && h.k - G.s > -1){ G.hinted[h.type] = true; store.set('lg_hints2', G.hinted); toast(HINTS[h.type]); } }
+  } else if (G.state === 'ending'){
+    updateEnding(dt);
   } else if (G.state === 'dead'){
     G.deadT += dt; G.speed = 0;
     if (G.deadT > .9 && ui.overP.hidden) showOver();
@@ -1437,11 +1588,12 @@ function frame(now){
   generate(G.s + CFG.genAhead); pruneHazards(G.s); syncSteps(G.s);
   updateSky(G.s);
   placeCamera(dt);
-  updateGirl(dt);
+  if (G.state !== 'ending') updateGirl(dt); else { const L = girl; L.light.intensity = lerp(1.5, 2.1, skyState.night); L.lamp.rotation.z = Math.sin(G.t * 2.4) * .05; }
+  updateMist();
 
   tower.updateMatrixWorld(true);
   girl.lcore.getWorldPosition(tmpV); lampLocal.copy(tower.worldToLocal(tmpV));
-  const ctx = { t: G.t, dt: simDt, s: G.s, speed: G.speed, diff: clamp(G.s / 900, 0, 1), lamp: lampLocal };
+  const ctx = { t: G.t, dt: simDt, s: G.s, speed: G.speed / G.mult, diff: clamp(G.s / 900, 0, 1), lamp: lampLocal }; // hazards judge the pace without the potion bonus
   if (simDt > 0) for (const h of hazards) if (Math.abs(h.k - G.s) < 50) h.update(ctx);
 
   girl.root.getWorldPosition(tmpV);
