@@ -1157,14 +1157,13 @@ function Knight(k, first, kneel = false){
   const pieces = []; const bm = M(PAL.bone, { roughness: .7 }), bs = M(PAL.boneShade, { roughness: .7 });
   const steel = M(0xB9BED8, { roughness: .45, metalness: .45 }), dark = M(0x2A2548), plume = M(0xD9544A, { roughness: .8 });
   const add = (o, x, y, z, rz = 0) => { o.position.set(x, y, z); o.rotation.z = rz; tmp.add(o); o.traverse(m => { if (m.isMesh) m.castShadow = true; }); pieces.push(o); return o; };
-  // great helm with a visor slit and a red plume (replaces the bare skull)
+  // great helm with a visor slit (replaces the bare skull)
   const helm = new T.Group();
   mesh(new T.CylinderGeometry(.16, .165, .26, 12), steel, 0, 0, 0, helm);
   mesh(new T.CylinderGeometry(.03, .16, .07, 12), steel, 0, .165, 0, helm);
   mesh(new T.BoxGeometry(.2, .03, .06), dark, 0, .02, .145, helm);
   mesh(new T.BoxGeometry(.02, .1, .06), dark, 0, -.05, .15, helm);
   [-1, 1].forEach(sd => mesh(sphere(.014, 6, 5), B(PAL.eye), sd * .05, .02, .17, helm));
-  const pl = mesh(new T.ConeGeometry(.05, .2, 6), plume, 0, .26, -.03, helm); pl.rotation.x = -.5;
   add(helm, 0, 1.1, 0);
   add(mesh(new T.BoxGeometry(.18, .05, .12), bs), 0, .94, .03);
   add(mesh(new T.CylinderGeometry(.025, .025, .42, 6), bs), 0, .68, -.02);
