@@ -787,11 +787,13 @@ function RavenPerch(k, first){
     type: 'raven', k, len: 1, first,
     update(c){
       const thr = lerp(C.thr, C.thrMin, c.diff);
-      const d = k - c.s, near = d > -1.4 && d < C.see;
+      const d = k - c.s, near = d > -3 && d < C.see;
       tm += c.dt;
       if (state === 'perch'){
         // warning phase: running nearby raises a "!"; slow to a walk before it fills up and the raven settles down
-        const fast = near && c.speed > thr && G.state === 'play';
+        // once she has walked past, the raven relaxes: a brisker pace is fine, only a real sprint right behind it counts
+        const behind = d < 0, thrHere = behind ? thr * lerp(1.5, 1.8, clamp(-d / 3, 0, 1)) : thr;
+        const fast = near && c.speed > thrHere && G.state === 'play';
         if (fast){ if (warn === 0){ AU.caw(.45); ravenToast(); } warn += c.dt; }
         else warn = Math.max(0, warn - c.dt * 1.6);
         const lim = lerp(C.warn, C.warnMin, c.diff), f = clamp(warn / lim, 0, 1);
@@ -819,7 +821,7 @@ function RavenPerch(k, first){
         bang.visible = warn > 0;
         if (bang.visible){ bang.scale.setScalar(.42 + .22 * f + Math.sin(c.t * 14) * .05); bang.material.color.setRGB(1, 1 - .45 * f, 1 - .45 * f); }
         // running right past the raven (or away from it with the warning still up) always provokes the attack
-        const runningPast = fast && d < .4;
+        const runningPast = G.state === 'play' && ((d > -.3 && d < .4 && c.speed > thr * 1.35) || (behind && d > -1.5 && c.speed > thr * 2));
         if (warn >= lim || runningPast){ state = 'swoop'; tm = 0; bang.visible = false; AU.caw(1); tower.attach(r.g); prev.copy(r.g.position); }
       } else if (state === 'swoop'){
         // homes in on the princess; once it has launched it will not miss
