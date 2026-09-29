@@ -1426,7 +1426,8 @@ syncToggles();
 
 let toastTimer = 0, floorTimer = 0;
 function toast(){} // text hints are off: the game explains itself with icons and animation
-function floorBanner(n){ ui.floor.innerHTML = `<small>этаж</small>${n}`; ui.floor.classList.add('on'); floorTimer = 2.2; }
+const STAIRS_ICON = '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M3 20h5v-5h5v-5h5V5h3" stroke="#FFF8EA" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function floorBanner(n){ ui.floor.innerHTML = `<small>${STAIRS_ICON}</small>${n}`; ui.floor.classList.add('on'); floorTimer = 2.2; }
 let ravenToastAt = -99;
 function ravenToast(){ if (G.t - ravenToastAt > 6){ ravenToastAt = G.t; toast('Ворон! Сбавь шаг, иначе нападёт', 2.4); } }
 function renderCharges(){ [...ui.charges.children].forEach((d, i) => d.classList.toggle('off', i >= G.charges)); }
