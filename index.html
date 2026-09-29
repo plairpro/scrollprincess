@@ -1322,8 +1322,22 @@ const POOLS = [null,
   ['skeleton', 'crumble', 'raven', 'hand', 'moths', 'flock', 'knight']];
 function poolFor(k){ const f = Math.floor(k / 100) + 1; return f >= 10 ? ['kneel'] : POOLS[Math.min(f, 6)]; }
 const FLOOR_NOTES = { 7: 'Седьмой этаж: на лестнице зелье скорости', 8: 'Туман! Видно только то, что освещает фонарь', 9: 'Девятый этаж. Все обитатели башни здесь', 10: 'Последний этаж. Рыцари встречают принцессу' };
-const gen = { rng: null, next: 22, shown: {}, last: '', potion: false };
-function resetGen(seed){ gen.rng = mulberry32(seed); gen.next = 22; gen.shown = {}; gen.last = ''; gen.potion = false; }
+const gen = { rng: null, next: 22, shown: {}, last: '', potion: false, bag: [], bagFloor: -1 };
+function resetGen(seed){ gen.rng = mulberry32(seed); gen.next = 22; gen.shown = {}; gen.last = ''; gen.potion = false; gen.bag = []; gen.bagFloor = -1; }
+// Every floor gets a shuffled "bag" that contains each accumulated threat at least once;
+// the threat new to this floor opens the floor and appears once more than the others.
+function fillBag(k){
+  const f = Math.floor(k / 100) + 1, pool = poolFor(k), fresh = pool.find(t => !gen.shown[t]);
+  const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--){ const j = Math.floor(gen.rng() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+  // first round: every accumulated threat exactly once (the new one leads), then extras
+  const round = shuffle(pool.filter(t => t !== fresh)); if (fresh) round.unshift(fresh);
+  const extra = []; if (fresh) extra.push(fresh);
+  while (round.length + extra.length < 10) extra.push(pool[Math.floor(gen.rng() * pool.length)]);
+  shuffle(extra);
+  const bag = round.concat(extra);
+  for (let i = 1; i < bag.length; i++) if (bag[i] === bag[i - 1]){ const j = bag.findIndex((t, q) => q > i && q >= round.length && t !== bag[i]); if (j > 0) [bag[i], bag[j]] = [bag[j], bag[i]]; }
+  gen.bag = bag; gen.bagFloor = f;
+}
 function generate(uptoS){
   while (gen.next < uptoS && gen.next < ROOF_S - 6){
     const k = gen.next; const diff = clamp(k / 900, 0, 1);
@@ -1331,10 +1345,11 @@ function generate(uptoS){
     const floorStart = Math.floor(k / 100) * 100;
     if (k >= 900 && k < 1000){ const h = MAKERS.kneel(k, !gen.shown.kneel); gen.shown.kneel = true; hazards.push(h); gen.next = k + 7 + Math.floor(gen.rng() * 9); continue; }
     if (k - floorStart < 4 && floorStart > 0){ gen.next = floorStart + 4; continue; }  // breathing room at each floor start
-    const unlocked = poolFor(k);
-    let type = unlocked.find(t => !gen.shown[t]);
-    const first = !!type;
+    const unlocked = poolFor(k), f = Math.floor(k / 100) + 1;
+    if (gen.bagFloor !== f) fillBag(k);
+    let type = gen.bag.shift();
     if (!type){ const pool = unlocked.filter(t => t !== gen.last); type = pool[Math.floor(gen.rng() * pool.length)] || unlocked[0]; }
+    const first = !gen.shown[type];
     gen.shown[type] = true; gen.last = type;
     const h = MAKERS[type](k, first); hazards.push(h);
     const len = h.len;
