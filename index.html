@@ -193,7 +193,7 @@ const CFG = {
   keySpeed: 4.5,
   pendingCap: 2.4,
   viewW: 6.8, viewH: 9.4,
-  girlScale: 1.45,
+  girlScale: 0.95,
   buildBehind: 26, buildAhead: 46, genAhead: 64,
   HAZ: {
     skeleton: { unlock: 20,  stand: 1.8, crumble: .45, pile: 1.35, tremble: .6, assemble: .4 },
@@ -448,7 +448,7 @@ const bands = []; for (let i = 0; i < 30; i++) bands.push(mesh(new T.CylinderGeo
 const cliffGeo = new T.BoxGeometry(L * 1.07, .46, W);
 const grassGeo = new T.BoxGeometry(L * 1.09, .08, W + .06);
 const frostGeo = new T.BoxGeometry(L * 1.09, .05, .1);
-const postGeo = new T.CylinderGeometry(.04, .045, .42, 6);
+const postGeo = new T.CylinderGeometry(.04, .045, .56, 6);
 const railLen = 2 * (CFG.ROUT - .12) * Math.sin(DA / 2);
 const railGeo = new T.BoxGeometry(railLen + .05, .06, .05);
 const winGlow = B(PAL.glow);
@@ -465,11 +465,11 @@ function stepBody(parent, j, z = 0, width = W, cliff, grass){
   return g;
 }
 function addRail(g, j){
-  const post = mesh(postGeo, M(PAL.wood), 0, .21, W / 2 - .12, g); post.castShadow = true;
-  mesh(new T.SphereGeometry(.055, 8, 6), M(PAL.woodDark), 0, .44, W / 2 - .12, g);
-  const piv = new T.Group(); piv.position.set(0, .38, W / 2 - .12); piv.rotation.y = DA / 2; g.add(piv);
+  const post = mesh(postGeo, M(PAL.wood), 0, .28, W / 2 - .12, g); post.castShadow = true;
+  mesh(new T.SphereGeometry(.055, 8, 6), M(PAL.woodDark), 0, .58, W / 2 - .12, g);
+  const piv = new T.Group(); piv.position.set(0, .5, W / 2 - .12); piv.rotation.y = DA / 2; g.add(piv);
   const r = mesh(railGeo, M(PAL.wood), railLen / 2, CFG.H / 2, 0, piv); r.rotation.z = Math.atan2(CFG.H, railLen);
-  const r2 = mesh(railGeo, M(PAL.woodDark), railLen / 2, CFG.H / 2 - .17, 0, piv); r2.rotation.z = r.rotation.z;
+  const r2 = mesh(railGeo, M(PAL.woodDark), railLen / 2, CFG.H / 2 - .22, 0, piv); r2.rotation.z = r.rotation.z;
 }
 function addWindow(parent, y, z, big){
   const g = new T.Group(); g.position.set(0, y, z); parent.add(g);
@@ -597,62 +597,76 @@ const flies = new T.Points(flyGeo, new T.PointsMaterial({ size: .34, map: flyTex
 scene.add(flies);
 
 /* ============================== GIRL ============================== */
-// Deliberately oversized, simple lantern: red base, glowing cylinder, red cap, one curved handle.
 function buildLantern(){
   const lamp = new T.Group();
-  const red = M(0xC84B4B, { roughness: .9, flatShading: true });
-  mesh(new T.CylinderGeometry(.075, .08, .05, 8), red, 0, -.085, 0, lamp);
-  const coreMat = new T.MeshBasicMaterial({ color: 0xFFE48A });
-  const glass = mesh(new T.CylinderGeometry(.058, .058, .12, 8), coreMat, 0, 0, 0, lamp);
-  mesh(new T.CylinderGeometry(.05, .078, .05, 8), red, 0, .085, 0, lamp);
-  mesh(new T.TorusGeometry(.05, .009, 4, 10, Math.PI), M(0x5A4B4B, { roughness: .9 }), 0, .11, 0, lamp);
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFD27A, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .9 }));
-  halo.scale.set(.42, .42, 1); lamp.add(halo);
+  const red = M(PAL.lanternRed, { roughness: .55 }), dark = M(PAL.lanternDark, { roughness: .6 }), metal = M(PAL.lanternMetal, { roughness: .5, metalness: .2 });
+  mesh(new T.CylinderGeometry(.085, .09, .05, 16), red, 0, -.1, 0, lamp);
+  mesh(new T.CylinderGeometry(.09, .09, .012, 16), dark, 0, -.128, 0, lamp);
+  mesh(new T.CylinderGeometry(.07, .085, .02, 16), dark, 0, -.068, 0, lamp);
+  const coreMat = new T.MeshBasicMaterial({ color: PAL.lampCore });
+  const glass = mesh(new T.CylinderGeometry(.056, .056, .12, 16), coreMat, 0, 0, 0, lamp);
+  for (let i = 0; i < 4; i++){ const a = i * Math.PI / 2 + Math.PI / 4; mesh(new T.CylinderGeometry(.006, .006, .13, 4), metal, Math.cos(a) * .064, 0, Math.sin(a) * .064, lamp); }
+  mesh(new T.CylinderGeometry(.075, .07, .02, 16), dark, 0, .07, 0, lamp);
+  const cap = mesh(new T.SphereGeometry(.085, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), red, 0, .075, 0, lamp); cap.scale.y = .65;
+  mesh(new T.CylinderGeometry(.018, .022, .03, 8), dark, 0, .14, 0, lamp);
+  const handle = mesh(new T.TorusGeometry(.09, .007, 5, 16, Math.PI), metal, 0, .09, 0, lamp);
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFC872, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .9 }));
+  halo.scale.set(.62, .62, 1); lamp.add(halo);
   const light = new T.PointLight(0xFFB870, 1.8, 7, 1.7); light.position.set(0, .02, .05); lamp.add(light);
+  light.castShadow = false;
   shadowAll(lamp, true); glass.castShadow = false;
   return { lamp, light, coreMat, halo };
 }
-// Princess rebuilt from the simplified spec: ~8 big readable forms, flat low-poly shading, no textures.
-// Read order from the game camera: tall white hat → blonde side panels → white dress → glowing red lantern.
 function buildGirl(){
+  // Chibi princess from the user's reference: white A-line dress with gold trim, blonde blocky bob,
+  // tall white hennin with a gold band and diamond gem, dark boots, red lantern in the right hand.
   const root = new T.Group(); const body = new T.Group(); root.add(body);
-  const flat = hex => M(hex, { roughness: .92, metalness: 0, flatShading: true });
-  const white = flat(0xF5F4FF), gold = flat(0xF2D67B), skin = flat(0xF7C9B8), dark = flat(0x5A4B4B);
-  // legs: two short dark cylinders under the hem
+  const skin = M(PAL.skin, { roughness: .8 }), white = M(0xF8F5F1, { roughness: .72 }), gold = M(0xE2BE68, { roughness: .42, metalness: .35 });
+  const hair = M(0xF0D28A, { roughness: .68, flatShading: true }), boot = M(0x4A3833, { roughness: .8 });
   const legs = [-1, 1].map(sd => {
-    const piv = new T.Group(); piv.position.set(sd * .075, .15, 0); body.add(piv);
-    mesh(new T.CylinderGeometry(.042, .046, .15, 6), dark, 0, -.075, 0, piv);
+    const piv = new T.Group(); piv.position.set(sd * .06, .3, 0); body.add(piv);
+    mesh(new T.CylinderGeometry(.042, .048, .26, 10), boot, 0, -.13, 0, piv);
+    const toe = mesh(sphere(.05, 10, 8), boot, 0, -.27, .02, piv); toe.scale.set(1, .6, 1.25);
     return piv;
   });
-  // dress = body: one truncated cone with a gold strip at the bottom
-  const dressG = new T.Group(); dressG.position.y = .33; body.add(dressG);
-  mesh(new T.CylinderGeometry(.1, .34, .46, 12), white, 0, 0, 0, dressG);
-  mesh(new T.CylinderGeometry(.342, .345, .04, 12), gold, 0, -.21, 0, dressG);
-  // arms angled toward the lantern handle, small spheres for hands
-  const hands = new T.Vector3(0, .43, .3);
+  const dressG = new T.Group(); dressG.position.y = .54; body.add(dressG);
+  mesh(new T.CylinderGeometry(.11, .3, .76, 28), white, 0, 0, 0, dressG);
+  mesh(new T.CylinderGeometry(.302, .306, .055, 28), gold, 0, -.35, 0, dressG);
+  const collar = mesh(new T.TorusGeometry(.085, .018, 8, 20), gold, 0, .925, 0, body); collar.rotation.x = Math.PI / 2;
+  mesh(new T.CylinderGeometry(.045, .05, .07, 10), skin, 0, .97, 0, body);
+  // sleeves with gold cuffs; both hands hold the lantern in front of her
+  const handR = new T.Vector3(0, .63, .25);
   [-1, 1].forEach(sd => {
-    const sh = new T.Vector3(sd * .095, .52, .02), hd = new T.Vector3(sd * .045, hands.y, hands.z);
-    body.add(cylBetween(sh, hd, .03, .026, white, 6));
-    mesh(new T.SphereGeometry(.035, 6, 5), skin, hd.x, hd.y, hd.z, body);
+    const shoulder = new T.Vector3(sd * .1, .88, .01), elbow = new T.Vector3(sd * .16, .72, .1), cuff = new T.Vector3(sd * .075, .645, .215);
+    body.add(cylBetween(shoulder, elbow, .04, .06, white, 18));
+    body.add(cylBetween(elbow, cuff, .06, .075, white, 18));
+    const ring = new T.Mesh(new T.TorusGeometry(.073, .015, 8, 20), gold); ring.position.copy(cuff);
+    ring.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), cuff.clone().sub(elbow).normalize()); body.add(ring);
+    const hand = cuff.clone().add(cuff.clone().sub(elbow).normalize().multiplyScalar(.04));
+    mesh(sphere(.036, 10, 8), skin, hand.x, hand.y, hand.z, body);
   });
-  // head: one sphere, two tiny dash eyes, subtle cheeks
-  const head = new T.Group(); head.position.y = .73; body.add(head);
-  mesh(new T.SphereGeometry(.19, 12, 9), skin, 0, 0, 0, head);
-  const eyeM = B(0x5A4B4B);
+  // head
+  const head = new T.Group(); head.position.y = 1.15; body.add(head);
+  const face = mesh(sphere(.2, 24, 18), skin, 0, 0, 0, head); face.scale.set(1, 1.02, .95);
+  const eyeM = B(0x2A2230);
   [-1, 1].forEach(sd => {
-    const e = mesh(new T.SphereGeometry(.02, 6, 5), eyeM, sd * .065, -.01, .178, head); e.scale.set(.75, 1.7, .5);
-    const ch = mesh(new T.SphereGeometry(.028, 6, 5), B(0xF3B3AA), sd * .11, -.07, .148, head); ch.scale.set(1.3, .6, .3);
+    mesh(new T.CylinderGeometry(.013, .013, .058, 10), eyeM, sd * .066, -.005, .183, head).rotation.x = -.08;
+    const bl = mesh(sphere(.034, 10, 8), M(0xF3AFA8, { roughness: .95 }), sd * .112, -.06, .152, head); bl.scale.set(1.25, .62, .35);
   });
-  // hair: just two golden blocks beside the face, ending at shoulder level
-  [-1, 1].forEach(sd => mesh(new T.BoxGeometry(.075, .32, .22), gold, sd * .185, -.08, -.02, head));
-  // hat: tall cone with a thin gold band at the base
-  const hat = new T.Group(); hat.position.set(0, .11, -.01); hat.rotation.x = -.12; head.add(hat);
-  mesh(new T.ConeGeometry(.21, .72, 10), white, 0, .36, 0, hat);
-  const band = mesh(new T.CylinderGeometry(.215, .215, .035, 10), gold, 0, .01, 0, hat);
-  const veil = new T.Group(); // no veil: just the hair blocks and the white hat
-  // lantern hangs from both hands in front of her
-  const pivot = new T.Group(); pivot.position.copy(hands).add(new T.Vector3(0, 0, .01)); body.add(pivot);
-  const L0 = buildLantern(); L0.lamp.scale.setScalar(1.25); L0.lamp.position.set(0, -.14, .05); pivot.add(L0.lamp);
+  // blocky blonde bob with straight bangs
+  const hairCap = mesh(new T.SphereGeometry(.218, 20, 10, 0, Math.PI * 2, 0, Math.PI * .5), hair, 0, .012, -.01, head); hairCap.scale.set(1.02, 1.08, 1.02);
+  mesh(new T.BoxGeometry(.36, .1, .09), hair, 0, .105, .15, head).rotation.x = -.25;
+  [-1, 1].forEach(sd => { const side = mesh(new T.BoxGeometry(.075, .42, .27), hair, sd * .19, -.1, -.005, head); side.rotation.z = sd * .05; });
+  mesh(new T.BoxGeometry(.4, .44, .1), hair, 0, -.1, -.155, head);
+  // hennin hat, gold band + gem, veil down the back
+  const hat = new T.Group(); hat.position.set(0, .165, -.03); hat.rotation.x = -.2; head.add(hat);
+  mesh(new T.ConeGeometry(.188, .64, 28), white, 0, .32, 0, hat);
+  const band = mesh(new T.TorusGeometry(.196, .028, 8, 28), gold, 0, .02, 0, hat); band.rotation.x = Math.PI / 2;
+  const gem = mesh(new T.OctahedronGeometry(.042, 0), M(0xF2D27E, { roughness: .3, metalness: .45 }), 0, .035, .215, hat); gem.scale.set(.8, 1.25, .45);
+  const veil = new T.Group(); // no veil: just the hair and the white hat
+  // lantern hangs from both hands
+  const pivot = new T.Group(); pivot.position.copy(handR); body.add(pivot);
+  const L0 = buildLantern(); L0.lamp.scale.setScalar(.95); L0.lamp.position.set(0, -.15, .05); pivot.add(L0.lamp);
   shadowAll(body, true, false);
   root.scale.setScalar(CFG.girlScale);
   return { root, body, legs, dressG, head, back: veil, strands: [], lamp: pivot, lcore: L0.lamp, light: L0.light, coreMat: L0.coreMat, halo: L0.halo };
@@ -664,7 +678,7 @@ const hazards = [];
 const bangTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#FFF8EA'; x.beginPath(); x.arc(64, 60, 46, 0, 7); x.fill(); x.beginPath(); x.moveTo(52, 96); x.lineTo(76, 96); x.lineTo(64, 118); x.fill(); x.fillStyle = '#D9544A'; x.font = '800 68px Nunito, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('!', 64, 64); return new T.CanvasTexture(c); })();
 function bangSprite(){ const s = new T.Sprite(new T.SpriteMaterial({ map: bangTex, transparent: true, depthTest: false })); s.scale.set(.42, .42, 1); s.visible = false; s.renderOrder = 10; return s; }
 const girlCenter = new T.Vector3();
-function girlCenterAt(s){ girlCenter.copy(P(s, CFG.RMID, .5 * CFG.girlScale)); }
+function girlCenterAt(s){ girlCenter.copy(P(s, CFG.RMID, .75 * CFG.girlScale)); }
 
 function buildRaven(sc = 1){
   const g = new T.Group(), inner = new T.Group(); g.add(inner);
@@ -744,7 +758,7 @@ function Skeleton(k, first){
 /* ---- 2. Raven on the rail: attacks anyone who runs past, only a calm walk is safe ---- */
 function RavenPerch(k, first){
   const C = CFG.HAZ.raven;
-  const root = new T.Group(); place(root, k, CFG.ROUT - .12, .47 + .12); tower.add(root);
+  const root = new T.Group(); place(root, k, CFG.ROUT - .12, .6 + .12); tower.add(root);
   const r = buildRaven(1); r.g.rotation.y = -Math.PI / 4; root.add(r.g);
   const bang = bangSprite(); bang.position.set(0, .45, 0); root.add(bang);
   let state = 'perch', tm = 0, warn = 0; const prev = new T.Vector3(), tgt = new T.Vector3();
@@ -856,7 +870,7 @@ function Crumble(k, first){
     const inner = new T.Group(); g.add(inner);
     stepBody(inner, j, 0, W, PAL.cliffCracked, PAL.grassDry);
     for (let q = 0; q < 3; q++){ const cr = mesh(new T.BoxGeometry(.28 + rnd() * .3, .012, .03), M(PAL.crack), (rnd() - .5) * .5, .01, (rnd() - .5) * 1.2, inner); cr.rotation.y = (rnd() - .5) * 2; }
-    const post = mesh(postGeo, M(PAL.woodDark), 0, .21, W / 2 - .12, g); post.rotation.z = .12;
+    const post = mesh(postGeo, M(PAL.woodDark), 0, .28, W / 2 - .12, g); post.rotation.z = .12;
     const chunks = []; for (let q = 0; q < 5; q++){ const ch = mesh(new T.DodecahedronGeometry(.13 + rnd() * .06, 0), M(PAL.cliffCracked, { flatShading: true }), 0, 0, 0, g); ch.visible = false; chunks.push({ m: ch, v: new T.Vector3() }); }
     items.push({ j, g, inner, chunks, state: 'ok', t: 0 });
   }
@@ -1210,23 +1224,23 @@ function updateGirl(dt){
   if (G.state === 'dead'){
     G.sit = Math.min(1, G.sit + dt * 2.2); const e = ease(G.sit);
     g.legs.forEach(l => l.rotation.x = lerp(l.rotation.x, -1.35, e));
-    g.body.position.y = -.08 * e; g.body.rotation.x = .08 * e; g.head.rotation.x = .25 * e;
+    g.body.position.y = -.28 * e; g.body.rotation.x = .08 * e; g.head.rotation.x = .25 * e;
   } else {
     g.legs[0].rotation.x = moving ? Math.sin(ph) * .55 : 0;
     g.legs[1].rotation.x = moving ? -Math.sin(ph) * .55 : 0;
-    g.body.position.y = moving ? Math.abs(Math.sin(ph)) * .022 : Math.sin(G.t * 2) * .005;
+    g.body.position.y = moving ? Math.abs(Math.sin(ph)) * .035 : Math.sin(G.t * 2) * .006;
     g.body.rotation.x = 0; g.head.rotation.x = 0;
-    g.dressG.rotation.z = 0;
+    g.dressG.rotation.z = moving ? Math.sin(ph) * .05 : 0;
   }
-  g.back.rotation.x = .28 + amp * .12 + Math.sin(G.t * 2.2) * .02; g.back.rotation.z = 0; g.strands.forEach(st => st.rotation.x = -amp * .2);
-  g.lamp.rotation.z = Math.sin(G.t * 2.4 + s - .6) * .07 * (moving ? 1.6 : .6);
+  g.back.rotation.x = -amp * .22 + Math.sin(G.t * 2.2) * .03; g.back.rotation.z = Math.sin(G.t * 1.6) * .03; g.strands.forEach(st => st.rotation.x = -amp * .2);
+  g.lamp.rotation.z = Math.sin(G.t * 2.4 + s) * .12 * (moving ? 1.6 : .6);
   g.lamp.rotation.x = Math.sin(G.t * 1.7) * .06 - amp * .15;
   if (G.flicker > 0) G.flicker -= dt;
   const fl = G.flicker > 0 ? (Math.random() < .5 ? .2 : 1) : 1;
   const ch = G.state === 'dead' ? Math.max(0, 1 - G.deadT * 1.4) : (.3 + .7 * G.charges / 3);
   const base = lerp(1.5, 2.1, skyState.night) * (1 + Math.sin(G.t * 5.3) * .04 + Math.sin(G.t * 13.1) * .02);
   g.light.intensity = base * ch * fl;
-  g.halo.material.opacity = .5 * ch * fl;
+  g.halo.material.opacity = .6 * ch * fl;
   g.coreMat.color.set(PAL.lampCore).multiplyScalar(.3 + .7 * ch * fl);
 }
 
