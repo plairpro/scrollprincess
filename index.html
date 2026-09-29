@@ -104,6 +104,8 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .smoke{animation:smoke 2.4s ease-in-out infinite}
 @keyframes smoke{0%{opacity:0;transform:translateY(6px)}40%{opacity:.9}100%{opacity:0;transform:translateY(-10px)}}
 .swipe{width:112px;height:auto;display:block;margin:2px auto 26px;overflow:visible}
+.btn.go.nudge{animation:nudge .6s ease}
+@keyframes nudge{0%,100%{transform:none}25%{transform:scale(1.14)}50%{transform:scale(.96)}75%{transform:scale(1.06)}}
 .btn.alt{background:#7D7299;box-shadow:0 6px 0 #5E5580}
 .small{font-size:12.5px!important}
 .big{font-family:var(--f-display);font-weight:600;font-size:64px;line-height:1;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;font-variant-numeric:tabular-nums}
@@ -1525,9 +1527,14 @@ function pause(on){
 }
 
 /* ============================== INPUT ============================== */
+let nudgeAt = 0;
+function nudgeStart(){
+  const now = performance.now(); if (now - nudgeAt < 700) return; nudgeAt = now;
+  const b = $('startBtn'); b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge');
+}
 function feed(steps){
   if (G.state === 'play') G.pending = clamp(G.pending + steps * G.mult, -CFG.pendingCap * G.mult, CFG.pendingCap * G.mult);
-  else if (G.state === 'title'){ if (steps > 0){ G.restartAcc += steps; if (G.restartAcc > .8){ G.restartAcc = 0; start(); } } }
+  else if (G.state === 'title') nudgeStart(); // a scroll can't unlock sound, so the run starts from the play button
   else if (G.state === 'dead' && G.deadT > 1.0){ if (steps > 0){ G.restartAcc += steps; if (G.restartAcc > 1.2){ G.restartAcc = 0; start(); } } }
 }
 window.addEventListener('wheel', e => {
