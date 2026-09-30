@@ -1886,9 +1886,9 @@ window.addEventListener('wheel', e => {
   feed(d * CFG.wheelK);
 }, { passive: false });
 let drag = null;
-// Touch: swipe to walk, or press and hold the right half of the screen to go forward, the left half to go back.
+// Touch: swipe to walk, or press and hold near the right edge to go forward, near the left edge to go back (the middle stays for swiping).
 canvas.addEventListener('pointerdown', e => { AU.init(); drag = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t: performance.now(),
-  hold: e.pointerType !== 'mouse' ? (e.clientX > window.innerWidth / 2 ? 1 : -1) : 0 }; try { canvas.setPointerCapture(e.pointerId); } catch(_){} });
+  hold: e.pointerType === 'mouse' ? 0 : e.clientX > window.innerWidth * .68 ? 1 : e.clientX < window.innerWidth * .32 ? -1 : 0 }; try { canvas.setPointerCapture(e.pointerId); } catch(_){} });
 canvas.addEventListener('pointermove', e => {
   if (!drag || drag.id !== e.pointerId) return;
   const dy = drag.y - e.clientY, dx = e.clientX - drag.x; drag.x = e.clientX; drag.y = e.clientY;
