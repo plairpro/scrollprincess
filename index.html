@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#1B1D52">
-<meta name="description" content="Девочка с лампой — уютная ночная аркада: поднимайся по спиральной башне, листая колесом мыши, тачпадом или свайпом.">
-<meta property="og:title" content="Девочка с лампой">
-<meta property="og:description" content="Ночная башня, красный фонарь, скелеты, вороны и мотыльки. Листай, чтобы подниматься.">
+<meta name="description" content="Принцесса Скролл — уютная ночная аркада: поднимайся по спиральной башне, листая колесом мыши, тачпадом или свайпом.">
+<meta property="og:title" content="Принцесса Скролл">
+<meta property="og:description" content="Принцесса с фонарём поднимается на ночную башню мимо скелетов, воронов и бабочек. Листай, чтобы подниматься.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Девочка с лампой</title>
+<title>Принцесса Скролл</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&family=Kurale&family=Philosopher:wght@700&display=swap">
@@ -1860,10 +1860,13 @@ window.addEventListener('wheel', e => {
   feed(d * CFG.wheelK);
 }, { passive: false });
 let drag = null;
-canvas.addEventListener('pointerdown', e => { AU.init(); drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; try { canvas.setPointerCapture(e.pointerId); } catch(_){} });
+// Touch: swipe to walk, or press and hold the right half of the screen to go forward, the left half to go back.
+canvas.addEventListener('pointerdown', e => { AU.init(); drag = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t: performance.now(),
+  hold: e.pointerType !== 'mouse' ? (e.clientX > window.innerWidth / 2 ? 1 : -1) : 0 }; try { canvas.setPointerCapture(e.pointerId); } catch(_){} });
 canvas.addEventListener('pointermove', e => {
   if (!drag || drag.id !== e.pointerId) return;
   const dy = drag.y - e.clientY, dx = e.clientX - drag.x; drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.hold && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 14) drag.hold = 0; // it's a swipe, not a hold
   feed((Math.abs(dx) > Math.abs(dy) ? dx : dy) * CFG.dragK); // left→right or bottom→top = forward, the stronger axis wins
 });
 const endDrag = e => { if (drag && drag.id === e.pointerId) drag = null; };
@@ -1994,6 +1997,10 @@ function frame(now){
 
   if (G.state === 'play'){
     let kv = 0; if (keys.ArrowUp || keys.ArrowRight) kv += 1; if (keys.ArrowDown || keys.ArrowLeft) kv -= 1;
+    if (!kv && drag && drag.hold){ // held touch: a calm walk first, speeding up to a run if held longer
+      const ht = (performance.now() - drag.t) / 1000;
+      if (ht > .08) kv = drag.hold * (ht < .7 ? .5 : lerp(.5, 1.15, clamp((ht - .7) / .6, 0, 1)));
+    }
     if (kv) G.pending = clamp(G.pending + kv * CFG.keySpeed * G.mult * dt, -CFG.pendingCap * G.mult, CFG.pendingCap * G.mult);
     const maxMove = CFG.maxSpeed * G.mult * dt;
     let move = clamp(G.pending, -maxMove, maxMove);
