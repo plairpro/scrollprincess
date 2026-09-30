@@ -622,6 +622,7 @@ function stepBody(parent, j, z = 0, width = W, cliff, grass){
 function addRail(g, j){
   const post = mesh(postGeo, M(PAL.wood), 0, .23, W / 2 - .12, g); post.castShadow = true;
   mesh(new T.SphereGeometry(.055, 8, 6), M(PAL.woodDark), 0, .48, W / 2 - .12, g);
+  if (j >= ROOF_S) return; // the railing ends on the last post
   const piv = new T.Group(); piv.position.set(0, .41, W / 2 - .12); piv.rotation.y = DA / 2; g.add(piv);
   const r = mesh(railGeo, M(PAL.wood), railLen / 2, CFG.H / 2, 0, piv); r.rotation.z = Math.atan2(CFG.H, railLen);
   const r2 = mesh(railGeo, M(PAL.woodDark), railLen / 2, CFG.H / 2 - .18, 0, piv); r2.rotation.z = r.rotation.z;
