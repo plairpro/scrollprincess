@@ -728,15 +728,15 @@ const stringers = new Map();
 function syncSteps(s){
   const lo = Math.floor(s) - CFG.buildBehind, hi = Math.floor(s) + CFG.buildAhead;
   for (const [j, g] of steps){ if (j < lo || j > hi){ tower.remove(g); steps.delete(j); } }
-  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
+  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S); j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
   for (const [j, g] of stringers){ if (j < lo || j > hi || skipSteps.has(j)){ tower.remove(g); stringers.delete(j); } }
-  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++) if (!stringers.has(j) && !skipSteps.has(j)) stringers.set(j, makeStringer(j));
+  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S); j++) if (!stringers.has(j) && !skipSteps.has(j)) stringers.set(j, makeStringer(j));
 }
 function clearSteps(){ for (const [, g] of steps) tower.remove(g); steps.clear(); for (const [, g] of stringers) tower.remove(g); stringers.clear(); }
 
 /* ground at the foot of the tower: island, pond, trees */
 const ground = new T.Group(); scene.add(ground);
-mesh(new T.CylinderGeometry(60, 60, .1, 48), M(PAL.water, { emissive: 0x101C52, emissiveIntensity: .25, roughness: .7 }), 0, -1.35, 0, ground).receiveShadow = true;
+mesh(new T.CylinderGeometry(60, 60, .1, 48), M(PAL.water, { emissive: 0x101C52, emissiveIntensity: .25, roughness: .7 }), 0, -1.35, 0, ground); // the far water takes no shadows: they looked like shapes floating in the sky
 mesh(new T.CylinderGeometry(CFG.ROUT + 2.6, CFG.ROUT + 2.9, 1.1, 40), M(PAL.cliff), 0, -1.0, 0, ground).receiveShadow = true;
 mesh(new T.CylinderGeometry(CFG.ROUT + 2.65, CFG.ROUT + 2.65, .1, 40), M(PAL.grass), 0, -.42, 0, ground).receiveShadow = true;
 mesh(new T.TorusGeometry(CFG.ROUT + 2.62, .06, 6, 48), M(PAL.frost), 0, -.37, 0, ground).rotation.x = Math.PI / 2;
@@ -826,6 +826,9 @@ const ROOF_GAP0 = (ROOF_S - 9.5) * DA, ROOF_GAPL = 10 * DA, ROOF_ARC = Math.PI *
 const inGap = a => { const d = ((a - ROOF_GAP0) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2); return d < ROOF_GAPL + .12; };
 mesh(new T.CylinderGeometry(CFG.RIN + .02, CFG.RIN + .02, .9, 36), M(PAL.cliff), 0, -.45, 0, roof).receiveShadow = true;                         // tower top
 mesh(new T.CylinderGeometry(CFG.ROUT + .3, CFG.RIN + .2, .3, 40, 1, false, ROOF_ARC0, ROOF_ARC), M(PAL.cliff, { side: T.DoubleSide }), 0, -.15, 0, roof).receiveShadow = true; // terrace ring
+[ROOF_ARC0, ROOF_ARC0 + ROOF_ARC].forEach(a => { // close the cut ends of the terrace so no hollow shows at the stairwell
+  const w = (CFG.ROUT + .3) - (CFG.RIN + .2), cap = new T.Mesh(new T.PlaneGeometry(w, .3), M(PAL.cliff2, { side: T.DoubleSide }));
+  const r = (CFG.ROUT + .3 + CFG.RIN + .2) / 2; cap.position.set(Math.sin(a) * r, -.15, Math.cos(a) * r); cap.rotation.y = a - Math.PI / 2; roof.add(cap); });
 const roofTop = mesh(new T.CylinderGeometry(CFG.RIN + .04, CFG.RIN + .04, .06, 36), M(PAL.grass), 0, -.02, 0, roof); roofTop.receiveShadow = true;
 { const ring = new T.RingGeometry(CFG.RIN, CFG.ROUT + .32, 40, 1, ROOF_ARC0 - Math.PI / 2, ROOF_ARC); ring.rotateX(-Math.PI / 2); // ring angle = tower angle - 90°
   const rm = new T.Mesh(ring, M(PAL.grass, { side: T.DoubleSide })); rm.position.y = .012; rm.receiveShadow = true; roof.add(rm); }
@@ -1412,7 +1415,7 @@ function Knight(k, first, kneel = false){
   const poseArm = ang => { armData.m.quaternion.copy(armRest).multiply(new T.Quaternion().setFromEuler(new T.Euler(ang, 0, 0))); };
   const snapStart = () => data.forEach(dd => { dd.S.p.copy(dd.m.position); dd.S.q.copy(dd.m.quaternion); });
   const upper = data.filter(dd => dd.A.p.y > .35), lower = data.filter(dd => dd.A.p.y <= .35), baseYaw = root.rotation.y;
-  const PLANT = -1.3; // sword held forward across the knee, clear of the steps
+  const PLANT = -Math.PI; // salute: sword raised straight up along the wall, out of her way
   return {
     type: kneel ? 'kneel' : 'knight', k, len: 1, first,
     get state(){ return state; },
@@ -1420,8 +1423,8 @@ function Knight(k, first, kneel = false){
       tm += c.dt; const d = k - c.s, near = Math.abs(d) < 9;
       if (kneel){
         // floor 10: the knight steps to the wall, kneels and plants his sword to let the princess pass
-        if (state === 'guard'){ poseArm(GUARD + Math.sin(c.t * 2 + k) * .06); if (G.state === 'play' && d < 3.4 && d > -1){ state = 'bow'; tm = 0; AU.tone(330, 'triangle', .6, .04); AU.tone(495, 'triangle', .6, .03, .12); } return; }
-        const e = ease(clamp(tm / 1.1, 0, 1));
+        if (state === 'guard'){ poseArm(GUARD + Math.sin(c.t * 2 + k) * .06); if (G.state === 'play' && d < 4.6 && d > -1){ state = 'bow'; tm = 0; AU.tone(330, 'triangle', .6, .04); AU.tone(495, 'triangle', .6, .03, .12); } return; }
+        const e = ease(clamp(tm / .8, 0, 1));
         root.position.copy(P(k, lerp(CFG.RMID + .05, CFG.RIN + .42, e)));
         root.rotation.y = baseYaw + 1.0 * e;
         // a real kneel: the body lowers a little, the legs fold but their feet stay on top of the step
@@ -1825,6 +1828,10 @@ function updateEnding(dt){
     fireLight.intensity = 3.2 * f; flameHalo.material.opacity = .85 * f;
     // the lighthouse turns only while the player scrolls, as if she were cranking it
     beam.rotation.y += G.spin * dt; G.spin *= Math.exp(-dt * 1.6);
+    // each quarter turn of the light gives a soft airy whoosh with a low hum, louder the faster it spins
+    G.spinAcc = (G.spinAcc || 0) + Math.abs(G.spin * dt);
+    if (G.spinAcc > Math.PI / 2){ G.spinAcc = 0; const v = clamp(Math.abs(G.spin) / 5, .15, 1);
+      AU.noise(.45, .05 * v, 'bandpass', 420 + v * 500, 1.2, 0, .12); AU.tone(98 + v * 30, 'sine', .5, .035 * v, 0, 92 + v * 20); }
     beamM.opacity = ease(clamp((t - 4) / 2, 0, 1)) * (.13 + Math.min(.1, Math.abs(G.spin) * .025));
   }
   if (t > 6.5 && ui.endP.hidden){ ui.endP.hidden = false; ui.hud.hidden = true; }
