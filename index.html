@@ -80,6 +80,9 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .title-card .subtitle{font:800 11.5px var(--f-body);letter-spacing:4px;text-transform:uppercase;color:var(--lantern-deep);margin-top:-2px}
 .title-card p{font-size:13.5px;margin-top:6px}
 .title-card .btn.go{margin-top:22px}
+.t-lamp{width:150px;height:auto;display:block;margin:-14px auto -4px;overflow:visible}
+.t-rays{transform-origin:50px 38px;animation:rays 2.8s ease-in-out infinite}
+@keyframes rays{0%,100%{opacity:.75;transform:scale(.95)}50%{opacity:1;transform:scale(1.04)}}
 .toggles{display:flex;gap:12px;justify-content:center}
 .tgl{width:72px;padding:12px 0;border-radius:18px;border:0;background:#EEE6F7;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:5px;font:800 12.5px var(--f-body);cursor:pointer;transition:background .15s,color .15s,transform .1s}
 .tgl svg{width:30px;height:30px}
@@ -131,7 +134,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .dbg{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);font:12px/1.4 ui-monospace,Menlo,monospace;color:var(--ink);background:var(--paper);padding:6px 8px;border-radius:8px;z-index:7;white-space:pre}
 .hint-arrow{display:inline-block;animation:nudge 1.4s ease-in-out infinite}
 @keyframes nudge{50%{transform:translateY(-5px)}}
-@media (prefers-reduced-motion:reduce){.card,.hint-arrow,.ribbon.bump,#stars2,.btn.go::after,.ico-walk,.ico-walk .leg,.smoke,.sndpill{animation:none}}
+@media (prefers-reduced-motion:reduce){.card,.hint-arrow,.ribbon.bump,#stars2,.btn.go::after,.ico-walk,.ico-walk .leg,.smoke,.sndpill,.t-rays{animation:none}}
 </style>
 </head>
 <body>
@@ -159,6 +162,13 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 
 <div class="panel" id="titleP">
   <div class="card title-card">
+    <svg class="t-lamp" viewBox="0 -6 100 88" aria-hidden="true"><defs><radialGradient id="lgT"><stop offset="0" stop-color="#FFD98A" stop-opacity=".8"/><stop offset="1" stop-color="#FFD98A" stop-opacity="0"/></radialGradient></defs><circle cx="50" cy="38" r="30" fill="url(#lgT)"/><g class="t-rays"><g stroke="#F2B84B" stroke-width="3" stroke-linecap="round"><line x1="50.0" y1="10.0" x2="50.0" y2="-3.0"/><line x1="64.0" y1="13.8" x2="68.0" y2="6.8"/><line x1="74.2" y1="24.0" x2="85.5" y2="17.5"/><line x1="78.0" y1="38.0" x2="86.0" y2="38.0"/><line x1="74.2" y1="52.0" x2="85.5" y2="58.5"/><line x1="64.0" y1="62.2" x2="68.0" y2="69.2"/><line x1="50.0" y1="66.0" x2="50.0" y2="79.0"/><line x1="36.0" y1="62.2" x2="32.0" y2="69.2"/><line x1="25.8" y1="52.0" x2="14.5" y2="58.5"/><line x1="22.0" y1="38.0" x2="14.0" y2="38.0"/><line x1="25.8" y1="24.0" x2="14.5" y2="17.5"/><line x1="36.0" y1="13.8" x2="32.0" y2="6.8"/></g></g><g transform="translate(50 38) scale(1.2) translate(-50 -39)"><path d="M43 20a7 7 0 0 1 14 0" stroke="#5A4B4B" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M39 28h22l-4-7.5H43Z" fill="#D9544A"/>
+<rect x="41" y="28" width="18" height="19" rx="2.6" fill="#FFE9B0"/>
+<rect x="44" y="31" width="12" height="13" rx="1.8" fill="#FFF7DA"/>
+<rect x="48.8" y="28" width="2.4" height="19" fill="#D9544A" opacity=".5"/>
+<rect x="38" y="47" width="24" height="6" rx="2.2" fill="#D9544A"/>
+<rect x="38" y="51.2" width="24" height="1.8" rx=".9" fill="#A83C38"/></g></svg>
     <h1 id="gameTitle">Принцесса Скролл</h1>
     <div class="subtitle" id="gameSub">восхождение</div>
     <button class="btn go icon-btn" id="startBtn" aria-label="Начать"><svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19.2 12Z" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></button>
@@ -300,7 +310,7 @@ const CFG = {
     flock:    { unlock: 80,  period: 5.6, tele: 1.0, pass: 1.2 },
     moths:    { unlock: 120, zone: 1.3, fast: 4.4, grace: .2 },
     hand:     { unlock: 150, period: 3.4, tele: .6, out: .25, hold: .55, back: .5 },
-    knight:   { unlock: 500, trigger: 2.0, reach: 2.35, windup: .85, windupMin: .65, strike: .28, crumble: .45, pile: 2.3, tremble: .6, assemble: .45 },
+    knight:   { unlock: 500, trigger: 1.55, reach: 1.7, windup: .85, windupMin: .65, strike: .28, crumble: .45, pile: 2.3, tremble: .6, assemble: .45 },
     gear:     { unlock: 200, omega: 1.1, omegaMax: 1.6, teeth: 4 }
   }
 };
@@ -1046,12 +1056,13 @@ function Crumble(k, first){
     const inner = new T.Group(); g.add(inner);
     stepBody(inner, j, 0, W, PAL.cliffCracked, PAL.grassDry);
     for (let q = 0; q < 3; q++){ const cr = mesh(new T.BoxGeometry(.28 + rnd() * .3, .012, .03), M(PAL.crack), (rnd() - .5) * .5, .01, (rnd() - .5) * 1.2, inner); cr.rotation.y = (rnd() - .5) * 2; }
-    const post = mesh(postGeo, M(PAL.woodDark), 0, .23, W / 2 - .12, g); post.rotation.z = .12;
+    const post = mesh(postGeo, M(PAL.woodDark), 0, .23, W / 2 - .12, inner); post.rotation.z = .12; // falls together with the step
     const chunks = []; for (let q = 0; q < 5; q++){ const ch = mesh(new T.DodecahedronGeometry(.13 + rnd() * .06, 0), M(PAL.cliffCracked, { flatShading: true }), 0, 0, 0, g); ch.visible = false; chunks.push({ m: ch, v: new T.Vector3() }); }
     items.push({ j, g, inner, chunks, state: 'ok', t: 0 });
   }
   return {
     type: 'crumble', k, len: n, first,
+    get broken(){ return items.some(it => it.state !== 'ok'); },
     update(c){
       const cur = Math.round(c.s);
       for (const it of items){
@@ -1063,14 +1074,13 @@ function Crumble(k, first){
             it.chunks.forEach((ch, q) => { ch.m.visible = true; ch.m.position.set((q - 2) * .15, -.2, (Math.random() - .5) * 1.2); ch.v.set((Math.random() - .5) * .8, Math.random() * .8, (Math.random() - .5) * .6); }); }
         } else if (it.state === 'gone'){
           it.chunks.forEach(ch => { ch.v.y -= 9.8 * c.dt; ch.m.position.addScaledVector(ch.v, c.dt); ch.m.rotation.x += c.dt * 3; ch.m.rotation.z += c.dt * 2; if (it.t > 1.6) ch.m.visible = false; });
-          if (it.t > C.gone){ it.state = 'restore'; it.t = 0; it.inner.visible = true; }
         } else if (it.state === 'restore'){
           const u = clamp(it.t / C.restore, 0, 1); it.inner.scale.set(1, Math.max(.02, easeOut(u) * (1 + Math.sin(u * Math.PI) * .15)), 1); it.inner.position.set(0, (1 - u) * -.3, 0);
           if (u >= 1){ it.state = 'ok'; it.t = 0; it.inner.scale.set(1, 1, 1); }
         }
       }
     },
-    deadly(s){ const cur = Math.round(s); const it = items.find(i => i.j === cur); return !!it && (it.state === 'gone' || (it.state === 'restore' && it.t < C.restore * .5)); },
+    deadly(s){ const cur = Math.round(s); const it = items.find(i => i.j === cur); return !!it && it.state === 'gone'; }, // once broken, a step stays broken
     dispose(){ items.forEach(it => { tower.remove(it.g); skipSteps.delete(it.j); }); }
   };
 }
@@ -1305,7 +1315,7 @@ function Knight(k, first, kneel = false){
       if (state === 'guard'){
         poseArm(GUARD + Math.sin(c.t * 2 + k) * .06);
         glint.material.opacity = 0;
-        if (G.state === 'play' && d > 0 && d < C.trigger){ state = 'windup'; tm = 0; AU.tone(520, 'sawtooth', .5, .03, 0, 900); AU.rattle(.4); }
+        if (G.state === 'play' && d > 0 && d < C.trigger){ state = 'windup'; tm = 0; if (G.pending > 0) G.pending = Math.min(G.pending, Math.max(0, d - .75)); /* she startles and stops short of him */ AU.tone(520, 'sawtooth', .5, .03, 0, 900); AU.rattle(.4); }
       } else if (state === 'windup'){
         const u = clamp(tm / windup, 0, 1);
         poseArm(lerp(GUARD, RAISED, easeOut(clamp(u * 1.6, 0, 1))) + (u > .6 ? Math.sin(c.t * 40) * .03 : 0));
@@ -1439,7 +1449,7 @@ function generate(uptoS){
     gen.next = k + len + (first ? 11 : Math.round(lerp(10, 5.5, diff) + gen.rng() * 3.5));
   }
 }
-function pruneHazards(s){ for (let i = hazards.length - 1; i >= 0; i--){ const h = hazards[i]; if (h.k + h.len < s - CFG.buildBehind + 2){ h.dispose(); hazards.splice(i, 1); } } }
+function pruneHazards(s){ for (let i = hazards.length - 1; i >= 0; i--){ const h = hazards[i]; if (h.k + h.len < s - CFG.buildBehind + 2 && !h.broken){ h.dispose(); hazards.splice(i, 1); } } } // a broken stair stays broken behind her
 function clearHazards(){ hazards.forEach(h => h.dispose()); hazards.length = 0; skipSteps.clear(); wallBusy.clear(); }
 
 /* ============================== GAME STATE ============================== */
