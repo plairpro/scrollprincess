@@ -107,6 +107,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .mini-card{width:min(270px,100%);padding:30px 22px 34px;gap:22px;align-items:center}
 .mid{height:108px;display:flex;align-items:center;justify-content:center}
 .art{width:180px;height:149px;display:block;border-radius:16px;flex:none}
+.art .o,.t-lamp .o{stroke:#3A2F5E;stroke-width:1.5;stroke-linejoin:round;paint-order:stroke}
 .smoke{animation:smoke 2.4s ease-in-out infinite}
 @keyframes smoke{0%{opacity:0;transform:translateY(6px)}40%{opacity:.9}100%{opacity:0;transform:translateY(-10px)}}
 .swipe{width:112px;height:auto;display:block;margin:2px auto 26px;overflow:visible}
@@ -170,12 +171,12 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div class="panel" id="titleP">
   <div class="card title-card">
     <svg class="t-lamp" viewBox="0 -6 100 88" aria-hidden="true"><defs><radialGradient id="lgT"><stop offset="0" stop-color="#FFD98A" stop-opacity=".8"/><stop offset="1" stop-color="#FFD98A" stop-opacity="0"/></radialGradient></defs><circle cx="50" cy="38" r="30" fill="url(#lgT)"/><g class="t-rays"><g stroke="#F2B84B" stroke-width="3" stroke-linecap="round"><line x1="50.0" y1="10.0" x2="50.0" y2="-3.0"/><line x1="64.0" y1="13.8" x2="68.0" y2="6.8"/><line x1="74.2" y1="24.0" x2="85.5" y2="17.5"/><line x1="78.0" y1="38.0" x2="86.0" y2="38.0"/><line x1="74.2" y1="52.0" x2="85.5" y2="58.5"/><line x1="64.0" y1="62.2" x2="68.0" y2="69.2"/><line x1="50.0" y1="66.0" x2="50.0" y2="79.0"/><line x1="36.0" y1="62.2" x2="32.0" y2="69.2"/><line x1="25.8" y1="52.0" x2="14.5" y2="58.5"/><line x1="22.0" y1="38.0" x2="14.0" y2="38.0"/><line x1="25.8" y1="24.0" x2="14.5" y2="17.5"/><line x1="36.0" y1="13.8" x2="32.0" y2="6.8"/></g></g><g transform="translate(50 38) scale(1.2) translate(-50 -39)"><path d="M43 20a7 7 0 0 1 14 0" stroke="#5A4B4B" stroke-width="3" fill="none" stroke-linecap="round"/>
-<path d="M39 28h22l-4-7.5H43Z" fill="#D9544A"/>
-<rect x="41" y="28" width="18" height="19" rx="2.6" fill="#FFE9B0"/>
+<path class="o" d="M39 28h22l-4-7.5H43Z" fill="#D9544A"/>
+<rect class="o" x="41" y="28" width="18" height="19" rx="2.6" fill="#FFE9B0"/>
 <rect x="44" y="31" width="12" height="13" rx="1.8" fill="#FFF7DA"/>
 <rect x="48.8" y="28" width="2.4" height="19" fill="#D9544A" opacity=".5"/>
-<rect x="38" y="47" width="24" height="6" rx="2.2" fill="#D9544A"/>
-<rect x="38" y="51.2" width="24" height="1.8" rx=".9" fill="#A83C38"/></g></svg>
+<rect class="o" x="38" y="47" width="24" height="6" rx="2.2" fill="#D9544A"/>
+<rect class="o" x="38" y="51.2" width="24" height="1.8" rx=".9" fill="#A83C38"/></g></svg>
     <h1 id="gameTitle">Принцесса Скролл</h1>
     <div class="subtitle" id="gameSub">восхождение</div>
     <button class="btn go icon-btn" id="startBtn" aria-label="Начать"><svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19.2 12Z" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></button>
@@ -186,17 +187,17 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div class="panel" id="overP" hidden>
   <div class="card mini-card">
     <svg class="art" viewBox="0 0 150 124" aria-hidden="true">
-      <rect width="150" height="124" rx="16" fill="#2E3272"/><g transform="translate(15 0)"><g fill="#FFF6D8"><circle cx="14" cy="17" r="1.1"/><circle cx="36" cy="10" r=".9"/><circle cx="103" cy="50" r="1"/><circle cx="22" cy="57" r=".8"/><circle cx="84" cy="12" r=".8"/></g><circle cx="101" cy="20" r="7" fill="#FFF4C9"/><circle cx="104" cy="17.6" r="6.2" fill="#2E3272"/>
+      <rect width="150" height="124" rx="16" fill="#2E3272"/><g transform="translate(15 0)"><g fill="#FFF6D8"><circle class="o" cx="14" cy="17" r="1.1"/><circle class="o" cx="36" cy="10" r=".9"/><circle class="o" cx="103" cy="50" r="1"/><circle class="o" cx="22" cy="57" r=".8"/><circle class="o" cx="84" cy="12" r=".8"/></g><circle cx="101" cy="20" r="7" fill="#FFF4C9"/><circle cx="104" cy="17.6" r="6.2" fill="#2E3272"/>
       <path class="smoke" d="M60 58c-5-6 5-9 0-15s5-9 0-15" stroke="#B9B3CC" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <path d="M52 50h16l10 42H42Z" fill="#F8F5F1"/><rect x="42" y="89" width="36" height="4" rx="2" fill="#E2BE68"/>
-      <rect x="49" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/><rect x="65" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/>
-      <ellipse cx="52" cy="107" rx="5" ry="3.2" fill="#fff"/><ellipse cx="68" cy="107" rx="5" ry="3.2" fill="#fff"/>
-      <path d="M52 56 58 70M68 56 62 70" stroke="#F8F5F1" stroke-width="5.5" stroke-linecap="round"/>
-      <rect x="53" y="73" width="14" height="6" rx="1.5" fill="#9E4A48"/><rect x="54.5" y="62" width="11" height="11" rx="1.5" fill="#3A3D66"/><path d="M53 62h14l-2.5-4.5h-9Z" fill="#9E4A48"/><path d="M56 57.5a4 4 0 0 1 8 0" stroke="#5A4B4B" stroke-width="1.6" fill="none"/>
-      <circle cx="60" cy="41" r="11" fill="#F6D2BC"/>
-      <rect x="46.5" y="34" width="5.5" height="17" rx="1.5" fill="#F0D28A"/><rect x="68" y="34" width="5.5" height="17" rx="1.5" fill="#F0D28A"/>
+      <path class="o" d="M52 50h16l10 42H42Z" fill="#F8F5F1"/><rect class="o" x="42" y="89" width="36" height="4" rx="2" fill="#E2BE68"/>
+      <rect class="o" x="49" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/><rect class="o" x="65" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/>
+      <ellipse class="o" cx="52" cy="107" rx="5" ry="3.2" fill="#fff"/><ellipse class="o" cx="68" cy="107" rx="5" ry="3.2" fill="#fff"/>
+      <path d="M52 56 58 70M68 56 62 70" stroke="#3A2F5E" stroke-width="8.3" stroke-linecap="round"/><path d="M52 56 58 70M68 56 62 70" stroke="#F8F5F1" stroke-width="5.5" stroke-linecap="round"/>
+      <rect class="o" x="53" y="73" width="14" height="6" rx="1.5" fill="#9E4A48"/><rect class="o" x="54.5" y="62" width="11" height="11" rx="1.5" fill="#3A3D66"/><path class="o" d="M53 62h14l-2.5-4.5h-9Z" fill="#9E4A48"/><path d="M56 57.5a4 4 0 0 1 8 0" stroke="#5A4B4B" stroke-width="1.6" fill="none"/>
+      <circle class="o" cx="60" cy="41" r="11" fill="#F6D2BC"/>
+      <rect class="o" x="46.5" y="34" width="5.5" height="17" rx="1.5" fill="#F0D28A"/><rect class="o" x="68" y="34" width="5.5" height="17" rx="1.5" fill="#F0D28A"/>
       <path d="M54.5 42.5q1.5 1.6 3 0M62.5 42.5q1.5 1.6 3 0" stroke="#2A2230" stroke-width="1.7" fill="none" stroke-linecap="round"/>
-      <path d="M60 3 71.5 32h-23Z" fill="#F8F5F1"/><rect x="47" y="30" width="26" height="4.5" rx="2.2" fill="#E2BE68"/></g>
+      <path class="o" d="M60 3 71.5 32h-23Z" fill="#F8F5F1"/><rect class="o" x="47" y="30" width="26" height="4.5" rx="2.2" fill="#E2BE68"/></g>
     </svg>
     <div class="big mid">
       <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#4A3F6B"><ellipse cx="7.5" cy="8" rx="3" ry="4.6"/><ellipse cx="7.5" cy="16.2" rx="2.2" ry="1.9"/><ellipse cx="16.5" cy="6" rx="3" ry="4.6"/><ellipse cx="16.5" cy="14.2" rx="2.2" ry="1.9"/></g></svg>
@@ -221,20 +222,19 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div class="panel" id="pauseP" hidden>
   <div class="card mini-card">
     <svg class="art" viewBox="0 0 150 124" aria-hidden="true">
-      <rect width="150" height="124" rx="16" fill="#2E3272"/><g transform="translate(0 7)"><g fill="#FFF6D8"><circle cx="18" cy="16" r="1.1"/><circle cx="45" cy="9" r=".9"/><circle cx="129" cy="45" r="1"/><circle cx="27" cy="52" r=".8"/><circle cx="105" cy="11" r=".8"/></g><circle cx="126" cy="18" r="7" fill="#FFF4C9"/><circle cx="130" cy="15.7" r="6.2" fill="#2E3272"/>
+      <rect width="150" height="124" rx="16" fill="#2E3272"/><g transform="translate(0 7)"><g fill="#FFF6D8"><circle class="o" cx="18" cy="16" r="1.1"/><circle class="o" cx="45" cy="9" r=".9"/><circle class="o" cx="129" cy="45" r="1"/><circle class="o" cx="27" cy="52" r=".8"/><circle class="o" cx="105" cy="11" r=".8"/></g><circle cx="126" cy="18" r="7" fill="#FFF4C9"/><circle cx="130" cy="15.7" r="6.2" fill="#2E3272"/>
       <defs><radialGradient id="glowS"><stop offset="0" stop-color="#FFE2A0" stop-opacity=".9"/><stop offset="1" stop-color="#FFE2A0" stop-opacity="0"/></radialGradient></defs>
       <rect x="14" y="70" width="122" height="9" rx="2" fill="#6DB39A"/><rect x="14" y="69" width="122" height="3" rx="1.5" fill="#EFF7F4"/><rect x="14" y="79" width="122" height="24" rx="3" fill="#E3A08F"/>
       <circle cx="104" cy="60" r="20" fill="url(#glowS)"/>
-      <rect x="98" y="64" width="12" height="6" rx="1.5" fill="#D9544A"/><rect x="99.5" y="54" width="9" height="10" rx="1.5" fill="#FFE2A0"/><path d="M98 54h12l-2-4h-8Z" fill="#D9544A"/><path d="M100.5 50a3.5 3.5 0 0 1 7 0" stroke="#5A4B4B" stroke-width="1.4" fill="none"/>
-      <rect x="57" y="67" width="5.5" height="22" rx="2.5" fill="#F6D2BC"/><rect x="66" y="67" width="5.5" height="22" rx="2.5" fill="#F6D2BC"/>
-      <ellipse cx="59.5" cy="90" rx="4.5" ry="3" fill="#fff"/><ellipse cx="68.5" cy="90" rx="4.5" ry="3" fill="#fff"/>
-      <path d="M58 44h13l8 26H50Z" fill="#F8F5F1"/><rect x="50" y="67" width="29" height="3.5" rx="1.5" fill="#E2BE68"/>
-      <path d="M58 50 52 62M71 50 80 61" stroke="#F8F5F1" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="64.5" cy="36" r="10" fill="#F6D2BC"/>
-      <rect x="52.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/><rect x="71.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/>
+      <rect class="o" x="98" y="64" width="12" height="6" rx="1.5" fill="#D9544A"/><rect class="o" x="99.5" y="54" width="9" height="10" rx="1.5" fill="#FFE2A0"/><path class="o" d="M98 54h12l-2-4h-8Z" fill="#D9544A"/><path d="M100.5 50a3.5 3.5 0 0 1 7 0" stroke="#5A4B4B" stroke-width="1.4" fill="none"/>
+      <rect class="o" x="57" y="67" width="5.5" height="22" rx="2.5" fill="#F6D2BC"/><rect class="o" x="66" y="67" width="5.5" height="22" rx="2.5" fill="#F6D2BC"/>
+      <ellipse class="o" cx="59.5" cy="90" rx="4.5" ry="3" fill="#fff"/><ellipse class="o" cx="68.5" cy="90" rx="4.5" ry="3" fill="#fff"/>
+      <path class="o" d="M58 44h13l8 26H50Z" fill="#F8F5F1"/><rect class="o" x="50" y="67" width="29" height="3.5" rx="1.5" fill="#E2BE68"/>
+      <path d="M58 50 52 62M71 50 80 61" stroke="#3A2F5E" stroke-width="7.8" stroke-linecap="round"/><path d="M58 50 52 62M71 50 80 61" stroke="#F8F5F1" stroke-width="5" stroke-linecap="round"/>
+      <circle class="o" cx="64.5" cy="36" r="10" fill="#F6D2BC"/>
+      <rect class="o" x="52.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/><rect class="o" x="71.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/>
       <ellipse cx="61.25" cy="36.5" rx="1.35" ry="2.6" fill="#3E9E62"/><ellipse cx="67.75" cy="36.5" rx="1.35" ry="2.6" fill="#3E9E62"/><circle cx="61.7" cy="35.4" r=".5" fill="#fff"/><circle cx="68.2" cy="35.4" r=".5" fill="#fff"/>
-      <ellipse cx="57.8" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/><ellipse cx="71.2" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/>
-      <path d="M64.5 1 75 28H54Z" fill="#F8F5F1"/><rect x="53" y="26.5" width="23" height="4" rx="2" fill="#E2BE68"/></g>
+      <path class="o" d="M64.5 1 75 28H54Z" fill="#F8F5F1"/><rect class="o" x="53" y="26.5" width="23" height="4" rx="2" fill="#E2BE68"/></g>
     </svg>
     <div class="toggles mid">
       <button class="tgl" id="sfxBtn" aria-pressed="true" aria-label="Звуки">
@@ -1184,6 +1184,17 @@ function Crumble(k, first){
 }
 
 /* ---- 5. Moth swarm over the stairs: run through fast, linger and they bite ---- */
+// one butterfly wing hinged at the body: a big rounded fore-wing over a smaller hind-wing
+const mothWingGeo = (() => {
+  const sh = new T.Shape();
+  sh.moveTo(0, .012);
+  sh.bezierCurveTo(.02, .07, .085, .1, .1, .06);
+  sh.bezierCurveTo(.11, .03, .09, .012, .06, .004);
+  sh.bezierCurveTo(.09, -.02, .085, -.07, .05, -.068);
+  sh.bezierCurveTo(.025, -.066, .008, -.035, 0, -.012);
+  sh.closePath();
+  return new T.ShapeGeometry(sh, 8);
+})();
 const mothShadowGeo = (() => {
   const sh = new T.Shape(); // moth seen flat: two rounded wing pairs around a thin body
   const pts = [[0, .07], [.04, .1], [.12, .1], [.16, .05], [.12, .0], [.14, -.06], [.1, -.1], [.04, -.08], [.015, -.03], [0, -.075]];
@@ -1220,8 +1231,8 @@ function Moths(k, first){
   for (let i = 0; i < 22; i++){
     const m = new T.Group(); g.add(m);
     const wm = new T.MeshBasicMaterial({ color: PAL.moth[i % 4], side: T.DoubleSide });
-    const wl = mesh(new T.CircleGeometry(.065, 3), wm, -.04, 0, 0, m), wr = mesh(new T.CircleGeometry(.065, 3), wm, .04, 0, 0, m);
-    mesh(sphere(.02, 5, 4), B(0xFFF6DE), 0, 0, 0, m);
+    const wr = mesh(mothWingGeo, wm, .006, 0, 0, m), wl = mesh(mothWingGeo, wm, -.006, 0, 0, m); wl.scale.x = -1; // butterfly: wings meet at the body
+    const body = mesh(sphere(.016, 6, 5), B(0x5A4A6E), 0, -.005, 0, m); body.scale.set(.8, 3, .8);
     const shadow = new T.Mesh(mothShadowGeo, mothShadowM); g.add(shadow);
     ms.push({ m, wl, wr, shadow, r: .2 + rnd() * .45, sp: 2 + rnd() * 2.5, ph: rnd() * 6.28, yv: (rnd() - .5) * .5 });
   }
