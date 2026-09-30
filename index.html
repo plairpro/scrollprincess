@@ -257,7 +257,6 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div class="dbg" id="dbg" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/effects/OutlineEffect.js"></script>
 <script>
 (() => {
 'use strict';
@@ -375,7 +374,7 @@ function cylBetween(a, b, r0, r1, mat, seg = 8){
   m.quaternion.setFromUnitVectors(UP, d.normalize());
   return m;
 }
-function shadowAll(o, cast = true, recv = false){ o.traverse(c => { if (c.isMesh){ c.castShadow = cast; c.receiveShadow = recv; } }); }
+function shadowAll(o, cast = true, recv = false){ o.traverse(c => { if (c.isMesh && !c.userData.isHull){ c.castShadow = cast; c.receiveShadow = recv; } }); }
 function lerpHex(a, b, t){ return new T.Color(a).lerp(new T.Color(b), t); }
 const sphere = (r, w = 14, h = 10) => new T.SphereGeometry(r, w, h);
 
@@ -543,24 +542,35 @@ const AU = {
 
 /* ============================== RENDERER / SCENE ============================== */
 const canvas = document.getElementById('c');
-const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const renderer = new T.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, alpha: true, powerPreference: 'high-performance' });
+let pr = Math.min(window.devicePixelRatio || 1, 2); // drops a little on its own if the phone can't hold 45 fps
+renderer.setPixelRatio(pr);
 renderer.setClearColor(0x000000, 0);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
 
 const scene = new T.Scene();
-// Soft ink outline around solid shapes (toy look). Glows, beams, shadows, sprites and glass get none.
-const outline = T.OutlineEffect ? new T.OutlineEffect(renderer, { defaultThickness: .0032, defaultColor: [.2, .16, .34] }) : null;
-let outlineTick = 0;
-const NO_LINE = { visible: false };
-function markOutlines(){
-  scene.traverse(o => { const ms = o.material; if (!ms) return; (Array.isArray(ms) ? ms : [ms]).forEach(m => {
-    if (m.userData.outlineParameters) return;
-    const solid = (m.isMeshStandardMaterial || m.isMeshLambertMaterial) && !m.transparent && m.opacity >= 1 && m.blending !== T.AdditiveBlending && !o.userData.noLine;
-    m.userData.outlineParameters = solid ? { thickness: .0032 } : NO_LINE;
-  }); });
+// Soft ink outline around solid shapes (toy look): a slightly inflated back-face copy of each solid mesh is a child of the mesh,
+// so the scene is drawn once in a single pass. Glows, beams, shadows, sprites and glass get none.
+const HULL = new T.ShaderMaterial({
+  side: T.BackSide, fog: true,
+  uniforms: T.UniformsUtils.merge([T.UniformsLib.fog, { outlineThickness: { value: .0032 }, outlineColor: { value: new T.Color(.2, .16, .34) } }]),
+  vertexShader: ['#include <common>', '#include <fog_pars_vertex>', 'uniform float outlineThickness;', 'void main(){', '#include <beginnormal_vertex>', '#include <begin_vertex>', '#include <project_vertex>',
+    'vec4 pos2 = projectionMatrix * modelViewMatrix * vec4(transformed - objectNormal, 1.0);', 'vec4 nrm = normalize(gl_Position - pos2);', 'gl_Position = gl_Position + nrm * outlineThickness * gl_Position.w;', '#include <fog_vertex>', '}'].join('\n'),
+  fragmentShader: ['#include <common>', '#include <fog_pars_fragment>', 'uniform vec3 outlineColor;', 'void main(){', 'gl_FragColor = vec4(outlineColor, 1.0);', '#include <tonemapping_fragment>', '#include <encodings_fragment>', '#include <fog_fragment>', '}'].join('\n')
+});
+function addHulls(){
+  const todo = [];
+  scene.traverse(o => {
+    if (!o.isMesh || o.userData.hullDone || o.userData.isHull || !o.geometry || !o.geometry.attributes.normal) return;
+    const m = o.material; if (Array.isArray(m) || !m) return;
+    o.userData.hullDone = true;
+    const solid = (m.isMeshStandardMaterial || m.isMeshLambertMaterial) && !m.transparent && m.opacity >= 1 && m.blending !== T.AdditiveBlending && !m.wireframe && m.depthTest !== false && !o.userData.noLine;
+    if (solid) todo.push(o);
+  });
+  for (const o of todo){ const h = new T.Mesh(o.geometry, HULL); h.userData.isHull = true; h.castShadow = false; h.receiveShadow = false; h.frustumCulled = o.frustumCulled; o.add(h); }
 }
+let outlineTick = 0;
 scene.fog = new T.Fog(0x2E3272, 16, 40);
 const camera = new T.PerspectiveCamera(32, 1, .1, 140);
 // Floor 8 cloud: every surface fades into a pale cloud by its real 3D distance from the lantern,
@@ -1999,11 +2009,12 @@ function updateGirl(dt){
   g.coreMat.color.set(PAL.lampCore).multiplyScalar(.3 + .7 * ch * fl);
 }
 
-let lastT = performance.now(), fpsAcc = 0, fpsN = 0, fps = 60;
+let lastT = performance.now(), fpsAcc = 0, fpsN = 0, fps = 60, slowN = 0;
 function frame(now){
   requestAnimationFrame(frame);
+  if (now - lastT < 10) return; // 120 Hz screens: draw at 60, it is enough and keeps the phone cool
   let dt = (now - lastT) / 1000; lastT = now; dt = clamp(dt, 0, 1 / 20);
-  fpsAcc += dt; fpsN++; if (fpsAcc > .5){ fps = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0; }
+  fpsAcc += dt; fpsN++; if (fpsAcc > .5){ fps = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0; if (G.state === 'play' && document.visibilityState === 'visible'){ slowN = fps < 45 ? slowN + 1 : 0; if (slowN >= 4 && pr > 1.25){ pr = Math.max(1.25, pr - .25); slowN = 0; renderer.setPixelRatio(pr); resize(); } } }
   const simDt = G.state === 'paused' ? 0 : dt;
   G.t += simDt;
 
@@ -2070,7 +2081,8 @@ function frame(now){
     const near = hazards.filter(h => Math.abs(h.k - G.s) < 8).map(h => `${h.type}@${h.k}${h.deadly(G.s) ? ' !' : ''}`).join('  ');
     ui.dbg.textContent = `fps ${fps}  s ${G.s.toFixed(2)}  v ${G.speed.toFixed(1)}  lamp ${G.charges}\n${near}`;
   }
-  if (outline){ if ((outlineTick++ & 31) === 0) markOutlines(); outline.render(scene, camera); } else renderer.render(scene, camera);
+  if ((outlineTick++ & 7) === 0) addHulls();
+  renderer.render(scene, camera);
 }
 
 reset(); G.state = 'title';
