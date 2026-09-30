@@ -797,13 +797,20 @@ for (let i = 0; i < 10; i++){
 const flyN = 44, flyGeo = new T.BufferGeometry(), flyPos = new Float32Array(flyN * 3), flySeed = [];
 for (let i = 0; i < flyN; i++) flySeed.push([Math.random() * 6.28, 3.4 + Math.random() * 6.5, Math.random() * 14 - 5, Math.random() * 6.28]);
 flyGeo.setAttribute('position', new T.BufferAttribute(flyPos, 3));
-function glowTex(r, g, b){ const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(.3, `rgba(${r},${g},${b},.55)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); }
+// Soft glow textures: keep RGB constant and only the alpha soft. A canvas stores premultiplied pixels, so nearly transparent
+// texels lose their colour and come back as coloured noise on phones; building the texels directly avoids it.
+function softTex(c, r, g, b){
+  const w = c.width, h = c.height, src = c.getContext('2d').getImageData(0, 0, w, h).data, out = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){ const i = (y * w + x) * 4, o = ((h - 1 - y) * w + x) * 4; out[o] = r; out[o + 1] = g; out[o + 2] = b; out[o + 3] = src[i + 3]; }
+  const t = new T.DataTexture(out, w, h, T.RGBAFormat); t.minFilter = T.LinearMipmapLinearFilter; t.magFilter = T.LinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t;
+}
+function glowTex(r, g, b){ const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(.3, `rgba(${r},${g},${b},.55)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return softTex(c, r, g, b); }
 const dotTex = glowTex(255, 226, 160);
-const hazeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+const hazeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return softTex(c, 255, 255, 255); })();
 // Cloud banks at the bottom and top of floor 8: seen above while climbing floor 7, below after leaving the fog.
 const puffTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   [[64, 70, 46], [40, 74, 30], [88, 72, 32], [60, 50, 30], [80, 56, 24]].forEach(([cx, cy, r]) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.55, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); });
-  return new T.CanvasTexture(c); })();
+  return softTex(c, 255, 255, 255); })();
 const cloudBank = new T.Group(); tower.add(cloudBank);
 { const rnd = mulberry32(8080), y0 = 700 * CFG.H, y1 = 800 * CFG.H;
   const puffM = [0xF4F5FB, 0xE6E8F2, 0xDADCEB].map(c => new T.SpriteMaterial({ map: puffTex, color: c, transparent: true, depthWrite: false, opacity: .9 }));
