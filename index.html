@@ -693,8 +693,8 @@ function syncSteps(s){
   const lo = Math.floor(s) - CFG.buildBehind, hi = Math.floor(s) + CFG.buildAhead;
   for (const [j, g] of steps){ if (j < lo || j > hi){ tower.remove(g); steps.delete(j); } }
   for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
-  for (const [j, g] of stringers){ if (j < lo || j > hi){ tower.remove(g); stringers.delete(j); } }
-  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++) if (!stringers.has(j)) stringers.set(j, makeStringer(j));
+  for (const [j, g] of stringers){ if (j < lo || j > hi || skipSteps.has(j)){ tower.remove(g); stringers.delete(j); } }
+  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++) if (!stringers.has(j) && !skipSteps.has(j)) stringers.set(j, makeStringer(j));
 }
 function clearSteps(){ for (const [, g] of steps) tower.remove(g); steps.clear(); for (const [, g] of stringers) tower.remove(g); stringers.clear(); }
 
@@ -1092,6 +1092,7 @@ function Crumble(k, first){
     const g = new T.Group(); place(g, j, CFG.RMID); tower.add(g);
     const inner = new T.Group(); g.add(inner);
     stepBody(inner, j, 0, W, PAL.cliffCracked, PAL.grassDry);
+    g.updateMatrix(); const beam = makeStringer(j); tower.remove(beam); beam.applyMatrix4(g.matrix.clone().invert()); inner.add(beam); // its piece of the side beam falls too, leaving a real hole
     for (let q = 0; q < 3; q++){ const cr = mesh(new T.BoxGeometry(.28 + rnd() * .3, .012, .03), M(PAL.crack), (rnd() - .5) * .5, .01, (rnd() - .5) * 1.2, inner); cr.rotation.y = (rnd() - .5) * 2; }
     const post = mesh(postGeo, M(PAL.woodDark), 0, .23, W / 2 - .12, inner); post.rotation.z = .12; // falls together with the step
     const chunks = []; for (let q = 0; q < 5; q++){ const ch = mesh(new T.DodecahedronGeometry(.13 + rnd() * .06, 0), M(PAL.cliffCracked, { flatShading: true }), 0, 0, 0, g); ch.visible = false; chunks.push({ m: ch, v: new T.Vector3() }); }
@@ -1815,7 +1816,16 @@ function updateMist(){
   if (m <= .001){ if (ui.mist.style.opacity !== '0') ui.mist.style.opacity = 0; return; }
   girl.root.getWorldPosition(_sp); _sp.y += .7; _sp.project(camera);
   const x = (_sp.x * .5 + .5) * window.innerWidth, y = (-_sp.y * .5 + .5) * window.innerHeight, R = Math.max(Math.min(window.innerWidth, window.innerHeight) * .19, 100);
-  ui.mist.style.background = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, rgba(64,60,116,0) 0px, rgba(64,60,116,.05) ${(R * .8).toFixed(0)}px, rgba(56,53,106,.9) ${(R * 1.35).toFixed(0)}px, rgba(44,42,88,1) ${(R * 1.9).toFixed(0)}px)`;
+  // a pale cloud: soft drifting puffs over a milky haze, with a clear pocket around the lantern
+  const t = G.t, W = window.innerWidth, Hh = window.innerHeight, puffs = [];
+  for (let i = 0; i < 6; i++){
+    const px = ((i * .37 + t * (.012 + i * .004)) % 1.3 - .15) * W, py = (.15 + ((i * .61) % 1) * .75) * Hh + Math.sin(t * .3 + i) * 30;
+    const pr = (.22 + (i % 3) * .08) * Math.max(W, Hh);
+    puffs.push(`radial-gradient(circle at ${px.toFixed(0)}px ${py.toFixed(0)}px, rgba(250,250,255,.55), rgba(250,250,255,0) ${pr.toFixed(0)}px)`);
+  }
+  const hole = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, rgba(222,224,238,0) 0px, rgba(222,224,238,.16) ${(R * .75).toFixed(0)}px, rgba(214,216,232,.88) ${(R * 1.35).toFixed(0)}px, rgba(206,208,226,.97) ${(R * 1.9).toFixed(0)}px)`;
+  ui.mist.style.background = puffs.join(',') + ',' + hole;
+  ui.mist.style.webkitMaskImage = ui.mist.style.maskImage = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, transparent ${(R * .7).toFixed(0)}px, #000 ${(R * 1.4).toFixed(0)}px)`;
   ui.mist.style.opacity = m.toFixed(3);
 }
 function updateGirl(dt){
