@@ -225,7 +225,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
       <path d="M58 50 52 62M71 50 80 61" stroke="#F8F5F1" stroke-width="5" stroke-linecap="round"/>
       <circle cx="64.5" cy="36" r="10" fill="#F6D2BC"/>
       <rect x="52.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/><rect x="71.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/>
-      <rect x="60.3" y="34" width="1.9" height="5" rx=".9" fill="#2A2230"/><rect x="66.8" y="34" width="1.9" height="5" rx=".9" fill="#2A2230"/>
+      <ellipse cx="61.25" cy="36.5" rx="1.35" ry="2.6" fill="#3E9E62"/><ellipse cx="67.75" cy="36.5" rx="1.35" ry="2.6" fill="#3E9E62"/><circle cx="61.7" cy="35.4" r=".5" fill="#fff"/><circle cx="68.2" cy="35.4" r=".5" fill="#fff"/>
       <ellipse cx="57.8" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/><ellipse cx="71.2" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/>
       <path d="M64.5 1 75 28H54Z" fill="#F8F5F1"/><rect x="53" y="26.5" width="23" height="4" rx="2" fill="#E2BE68"/></g>
     </svg>
@@ -786,7 +786,7 @@ const flameHalo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFD2
 const fireLight = new T.PointLight(0xFFB870, 0, 16, 1.6); fireLight.position.y = 1.4; brazier.add(fireLight);
 const beam = new T.Group(); beam.position.y = 1.35; brazier.add(beam);
 const beamM = new T.MeshBasicMaterial({ color: 0xFFE9B0, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
-[-1, 1].forEach(sd => { const cone = new T.Mesh(new T.ConeGeometry(1.6, 26, 20, 1, true), beamM); cone.rotation.z = sd * Math.PI / 2; cone.position.x = sd * 13; beam.add(cone); });
+[-1, 1].forEach(sd => { const cone = new T.Mesh(new T.ConeGeometry(4.2, 60, 24, 1, true), beamM); cone.rotation.z = sd * Math.PI / 2; cone.position.x = sd * 30; beam.add(cone); });
 
 /* ============================== GIRL ============================== */
 function buildLantern(){
@@ -840,9 +840,11 @@ function buildGirl(){
   // head
   const head = new T.Group(); head.position.y = 1.15; body.add(head);
   const face = mesh(sphere(.2, 24, 18), skin, 0, 0, 0, head); face.scale.set(1, 1.02, .95);
-  const eyeM = B(0x2A2230);
+  const eyeM = B(0x3E9E62), pupilM = B(0x1F3A2C), glintM = B(0xFFFFFF); // green eyes
   [-1, 1].forEach(sd => {
-    mesh(new T.CylinderGeometry(.013, .013, .058, 10), eyeM, sd * .066, -.005, .183, head).rotation.x = -.08;
+    const e = mesh(sphere(.024, 14, 10), eyeM, sd * .066, -.005, .178, head); e.scale.set(.82, 1.3, .45);
+    const pu = mesh(sphere(.013, 10, 8), pupilM, sd * .066, -.008, .187, head); pu.scale.set(.9, 1.3, .4);
+    mesh(sphere(.0065, 6, 5), glintM, sd * .066 + .007, .01, .19, head);
     const bl = mesh(sphere(.034, 10, 8), M(0xF3AFA8, { roughness: .95 }), sd * .112, -.06, .152, head); bl.scale.set(1.25, .62, .35);
   });
   // blocky blonde bob with straight bangs
@@ -1699,7 +1701,7 @@ function startEnding(){
   G.s = ROOF_S - .4; G.maxS = ROOF_S; ui.score.textContent = String(ROOF_S);
   if (ROOF_S > G.best){ G.best = ROOF_S; store.set('lg_best', ROOF_S); }
   G.endFrom = P(G.s, CFG.RGIRL); const a = ROOF_S * DA + .15;
-  G.endTo = new T.Vector3(Math.sin(a) * 1.05, ROOF_Y, Math.cos(a) * 1.05); G.endLit = false;
+  G.endTo = new T.Vector3(Math.sin(a) * 1.05, ROOF_Y, Math.cos(a) * 1.05); G.endLit = false; G.spin = 0;
 }
 function updateEnding(dt){
   G.endT += dt; const t = G.endT;
@@ -1717,8 +1719,9 @@ function updateEnding(dt){
     flame.scale.set(f * (1 + Math.sin(t * 9) * .06), f * (1 + Math.sin(t * 7.3) * .1), f * (1 + Math.cos(t * 8.1) * .06));
     flame.rotation.y += dt * 1.5;
     fireLight.intensity = 3.2 * f; flameHalo.material.opacity = .85 * f;
-    beamM.opacity = .16 * ease(clamp((t - 4) / 2, 0, 1));
-    beam.rotation.y += dt * .55;
+    // the lighthouse turns only while the player scrolls, as if she were cranking it
+    beam.rotation.y += G.spin * dt; G.spin *= Math.exp(-dt * 1.6);
+    beamM.opacity = ease(clamp((t - 4) / 2, 0, 1)) * (.13 + Math.min(.1, Math.abs(G.spin) * .025));
   }
   if (t > 6.5 && ui.endP.hidden){ ui.endP.hidden = false; ui.hud.hidden = true; }
 }
@@ -1735,6 +1738,7 @@ function nudgeStart(){
 }
 function feed(steps){
   if (G.state === 'play') G.pending = clamp(G.pending + steps * G.mult, -CFG.pendingCap * G.mult, CFG.pendingCap * G.mult);
+  else if (G.state === 'ending'){ if (G.endLit) G.spin = clamp(G.spin + steps * 1.4, -9, 9); }
   else if (G.state === 'title') nudgeStart(); // a scroll can't unlock sound, so the run starts from the play button
   else if (G.state === 'dead' && G.deadT > 1.0){ if (steps > 0){ G.restartAcc += steps; if (G.restartAcc > 1.2){ G.restartAcc = 0; start(); } } }
 }
