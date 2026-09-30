@@ -128,6 +128,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .sndpill{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 16px);z-index:6;border:0;border-radius:50%;width:52px;height:52px;display:grid;place-items:center;background:var(--paper);box-shadow:0 0 0 0 rgba(255,248,234,.7),0 6px 18px rgba(8,8,40,.4);cursor:pointer;animation:ping 1.6s ease-out infinite}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,248,234,.7),0 6px 18px rgba(8,8,40,.4)}100%{box-shadow:0 0 0 16px rgba(255,248,234,0),0 6px 18px rgba(8,8,40,.4)}}
 #mist{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0}
+#cloud{position:fixed;inset:0;pointer-events:none;opacity:0;background:#D4D6E6}
 .mult{padding:5px 12px 5px 14px;margin-right:16px;border-radius:99px;background:#F08BC8;color:#fff;font:800 14px var(--f-body);box-shadow:0 4px 14px rgba(240,139,200,.55);animation:bump 1s ease infinite}
 .endp{place-items:start center;padding-top:calc(env(safe-area-inset-top,0px) + 18px)}
 .end-ribbon{pointer-events:auto;display:flex;align-items:center;justify-content:center;gap:16px;padding:9px 46px;background:var(--paper);clip-path:polygon(0 0,100% 0,calc(100% - 22px) 50%,100% 100%,0 100%,22px 50%);filter:drop-shadow(0 6px 16px rgba(8,8,40,.45));animation:rise .5s cubic-bezier(.2,.8,.2,1)}
@@ -150,6 +151,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div id="stars2"></div>
 <div id="moon"></div>
 <div class="shoot" id="shoot"></div>
+<div id="cloud"></div>
 <canvas id="c" tabindex="0" aria-label="Игровое поле: башня со спиральной лестницей"></canvas>
 
 <div class="hud" id="hud" hidden>
@@ -548,6 +550,22 @@ renderer.shadowMap.type = T.PCFSoftShadowMap;
 const scene = new T.Scene();
 scene.fog = new T.Fog(0x2E3272, 16, 40);
 const camera = new T.PerspectiveCamera(32, 1, .1, 140);
+// Floor 8 cloud: every surface fades into a pale cloud by its real 3D distance from the lantern,
+// so the lit pocket follows the stairs and the wall instead of being a flat circle on the screen.
+const MIST = { amt: { value: 0 }, pos: { value: new T.Vector3() }, col: { value: new T.Color(0xD4D6E6) }, near: { value: .4 }, far: { value: 4.6 } };
+T.Material.prototype.onBeforeCompile = function(sh){
+  if (!sh.fragmentShader.includes('#include <fog_fragment>')) return;
+  const hasProj = sh.vertexShader.includes('#include <project_vertex>');
+  if (!hasProj && !sh.vertexShader.includes('#include <fog_vertex>')) return;
+  Object.assign(sh.uniforms, { uMistAmt: MIST.amt, uMistPos: MIST.pos, uMistCol: MIST.col, uMistNear: MIST.near, uMistFar: MIST.far });
+  sh.vertexShader = 'varying vec3 vMistW;\n' + (hasProj
+    ? sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nvMistW = (modelMatrix * vec4(transformed, 1.0)).xyz;')
+    : sh.vertexShader.replace('#include <fog_vertex>', '#include <fog_vertex>\nvMistW = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;')); // sprites
+  const add = this.transparent || this.blending === T.AdditiveBlending || !hasProj; // see-through things fade out instead of turning white
+  sh.fragmentShader = 'varying vec3 vMistW;\nuniform float uMistAmt, uMistNear, uMistFar;\nuniform vec3 uMistPos, uMistCol;\n' + sh.fragmentShader.replace('#include <fog_fragment>',
+    '#include <fog_fragment>\nfloat mistD = distance(vMistW, uMistPos);\nfloat mistF = uMistAmt * (.24 + .76 * pow(smoothstep(uMistNear, uMistFar, mistD), .8));\n' +
+    (add ? 'gl_FragColor.a *= 1.0 - mistF;' : 'gl_FragColor.rgb = mix(gl_FragColor.rgb, uMistCol, mistF);'));
+};
 
 const hemi = new T.HemisphereLight(0xB6BEFF, 0x3A3F7A, .9); scene.add(hemi);
 const moonLight = new T.DirectionalLight(0xCFD8FF, .55); moonLight.castShadow = true;
@@ -646,11 +664,12 @@ function makeStep(j){
   const h = hash(j);
   // Wall decor follows the staircase in a fixed rhythm: a window every 6 steps at one height,
   // a neat pair of stones halfway between windows. Nothing is placed where a niche is.
-  if (winStep(Math.floor(j / WIN_BLOCK)) === j && !wallBusy.has(j)){
+  const underRoof = j > ROOF_S - 12; // no windows or stones poking out above the roof
+  if (winStep(Math.floor(j / WIN_BLOCK)) === j && !wallBusy.has(j) && !underRoof){
     const hk = hash(j * 1.91), kind = hk < .33 ? 0 : (hk < .5 ? 1 : 2); // round windows are the most common
     addWindow(g, 1.35 + hash(j * 2.7) * .35, -W / 2 + .025, kind, (hash(j * 4.4) - .5) * .25);
   }
-  if (hash(j * 1.3) < .3 && !nearWindow(j, 2) && !wallBusy.has(j) && !(hash((j - 1) * 1.3) < .3) && !(hash((j - 2) * 1.3) < .3)){
+  if (hash(j * 1.3) < .3 && !underRoof && !nearWindow(j, 2) && !wallBusy.has(j) && !(hash((j - 1) * 1.3) < .3) && !(hash((j - 2) * 1.3) < .3)){
     const flip = hash(j * 2.1) < .5 ? 1 : -1;
     mesh(new T.BoxGeometry(.4, .18, .06), M(PAL.band), -.12 * flip, 1.1, -W / 2 + .03, g);
     mesh(new T.BoxGeometry(.34, .18, .06), M(PAL.stone), .14 * flip, 1.36, -W / 2 + .03, g);
@@ -766,6 +785,21 @@ for (let i = 0; i < flyN; i++) flySeed.push([Math.random() * 6.28, 3.4 + Math.ra
 flyGeo.setAttribute('position', new T.BufferAttribute(flyPos, 3));
 function glowTex(r, g, b){ const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(.3, `rgba(${r},${g},${b},.55)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); }
 const dotTex = glowTex(255, 226, 160);
+// Cloud banks at the bottom and top of floor 8: seen above while climbing floor 7, below after leaving the fog.
+const puffTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  [[64, 70, 46], [40, 74, 30], [88, 72, 32], [60, 50, 30], [80, 56, 24]].forEach(([cx, cy, r]) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.55, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); });
+  return new T.CanvasTexture(c); })();
+const cloudBank = new T.Group(); tower.add(cloudBank);
+{ const rnd = mulberry32(8080), y0 = 700 * CFG.H, y1 = 800 * CFG.H;
+  const puffM = [0xF4F5FB, 0xE6E8F2, 0xDADCEB].map(c => new T.SpriteMaterial({ map: puffTex, color: c, transparent: true, depthWrite: false, opacity: .9 }));
+  cloudBank.userData.base = .9;
+  for (let i = 0; i < 150; i++){
+    const top = i % 2, a = rnd() * Math.PI * 2, r = CFG.ROUT + .6 + Math.pow(rnd(), .7) * 9;
+    const y = top ? y1 - 1.2 + rnd() * 2.8 : y0 - 1.6 + rnd() * 2.8;
+    const sp = new T.Sprite(puffM[Math.floor(rnd() * 3)].clone()); const sc = 2.6 + rnd() * 3.6;
+    sp.scale.set(sc * 1.5, sc, 1); sp.position.set(Math.sin(a) * r, y, Math.cos(a) * r); cloudBank.add(sp);
+  }
+}
 const flyTex = glowTex(210, 245, 120);
 const flies = new T.Points(flyGeo, new T.PointsMaterial({ size: .34, map: flyTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: 0xD6F58A }));
 scene.add(flies);
@@ -773,11 +807,18 @@ scene.add(flies);
 /* ---- roof with a magic brazier that becomes a lighthouse ---- */
 const ROOF_Y = 1000 * CFG.H;
 const roof = new T.Group(); roof.position.y = ROOF_Y; tower.add(roof);
-mesh(new T.CylinderGeometry(CFG.ROUT + .3, CFG.RIN + .2, .9, 36), M(PAL.cliff), 0, -.45, 0, roof).receiveShadow = true;
-const roofTop = mesh(new T.CylinderGeometry(CFG.ROUT + .32, CFG.ROUT + .32, .06, 36), M(PAL.grass), 0, -.02, 0, roof); roofTop.receiveShadow = true;
-mesh(new T.TorusGeometry(CFG.ROUT + .3, .05, 6, 40), M(PAL.frost), 0, .02, 0, roof).rotation.x = Math.PI / 2;
-for (let i = 0; i < 18; i++){ // merlons with a gap where the stairs arrive
-  const a = i / 18 * Math.PI * 2; if (Math.abs(Math.atan2(Math.sin(a - ROOF_S * DA), Math.cos(a - ROOF_S * DA))) < .45) continue;
+// The roof is a terrace over the stairs with a stairwell opening where the last flight comes up through it,
+// so the princess (and her hat) walk up onto the roof instead of under it.
+const ROOF_GAP0 = (ROOF_S - 9.5) * DA, ROOF_GAPL = 10 * DA, ROOF_ARC = Math.PI * 2 - ROOF_GAPL, ROOF_ARC0 = ROOF_GAP0 + ROOF_GAPL;
+const inGap = a => { const d = ((a - ROOF_GAP0) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2); return d < ROOF_GAPL + .12; };
+mesh(new T.CylinderGeometry(CFG.RIN + .02, CFG.RIN + .02, .9, 36), M(PAL.cliff), 0, -.45, 0, roof).receiveShadow = true;                         // tower top
+mesh(new T.CylinderGeometry(CFG.ROUT + .3, CFG.RIN + .2, .3, 40, 1, false, ROOF_ARC0, ROOF_ARC), M(PAL.cliff, { side: T.DoubleSide }), 0, -.15, 0, roof).receiveShadow = true; // terrace ring
+const roofTop = mesh(new T.CylinderGeometry(CFG.RIN + .04, CFG.RIN + .04, .06, 36), M(PAL.grass), 0, -.02, 0, roof); roofTop.receiveShadow = true;
+{ const ring = new T.RingGeometry(CFG.RIN, CFG.ROUT + .32, 40, 1, ROOF_ARC0 - Math.PI / 2, ROOF_ARC); ring.rotateX(-Math.PI / 2); // ring angle = tower angle - 90°
+  const rm = new T.Mesh(ring, M(PAL.grass, { side: T.DoubleSide })); rm.position.y = .012; rm.receiveShadow = true; roof.add(rm); }
+{ const tor = new T.TorusGeometry(CFG.ROUT + .3, .05, 6, 40, ROOF_ARC); const tm = new T.Mesh(tor, M(PAL.frost)); tm.rotation.x = -Math.PI / 2; tm.rotation.z = ROOF_ARC0 - Math.PI / 2; tm.position.y = .02; roof.add(tm); }
+for (let i = 0; i < 18; i++){ // merlons, none over the stairwell
+  const a = i / 18 * Math.PI * 2; if (inGap(a)) continue;
   const m = mesh(new T.BoxGeometry(.45, .42, .3), M(PAL.wall), Math.sin(a) * (CFG.ROUT + .12), .2, Math.cos(a) * (CFG.ROUT + .12), roof); m.rotation.y = a; m.castShadow = true;
 }
 const brazier = new T.Group(); roof.add(brazier);
@@ -1341,7 +1382,7 @@ function Knight(k, first, kneel = false){
   const poseArm = ang => { armData.m.quaternion.copy(armRest).multiply(new T.Quaternion().setFromEuler(new T.Euler(ang, 0, 0))); };
   const snapStart = () => data.forEach(dd => { dd.S.p.copy(dd.m.position); dd.S.q.copy(dd.m.quaternion); });
   const upper = data.filter(dd => dd.A.p.y > .35), lower = data.filter(dd => dd.A.p.y <= .35), baseYaw = root.rotation.y;
-  const PLANT = -.18;
+  const PLANT = -1.3; // sword held forward across the knee, clear of the steps
   return {
     type: kneel ? 'kneel' : 'knight', k, len: 1, first,
     get state(){ return state; },
@@ -1353,8 +1394,9 @@ function Knight(k, first, kneel = false){
         const e = ease(clamp(tm / 1.1, 0, 1));
         root.position.copy(P(k, lerp(CFG.RMID + .05, CFG.RIN + .42, e)));
         root.rotation.y = baseYaw + 1.0 * e;
-        upper.forEach(dd => { dd.m.position.copy(dd.A.p); dd.m.position.y -= .34 * e; });
-        lower.forEach((dd, i) => { dd.m.position.copy(dd.A.p); dd.m.position.y *= 1 - .6 * e; dd.m.scale.y = 1 - .55 * e; if (i % 2) dd.m.position.x += .12 * e; }); // one knee forward
+        // a real kneel: the body lowers a little, the legs fold but their feet stay on top of the step
+        upper.forEach(dd => { dd.m.position.copy(dd.A.p); dd.m.position.y -= .17 * e; });
+        lower.forEach((dd, i) => { dd.m.position.copy(dd.A.p); const k2 = 1 - .38 * e; dd.m.scale.y = k2; dd.m.position.y = Math.max(dd.A.p.y * k2, .025); if (i % 2) dd.m.position.x += .1 * e; });
         poseArm(lerp(GUARD, PLANT, e));
         return;
       }
@@ -1443,13 +1485,10 @@ function Boss(k0){
   mesh(new T.BoxGeometry(.075, .9, .02), steel, 0, -.54, 0, sword);
   const tip = mesh(new T.ConeGeometry(.04, .11, 4), steel, 0, -1.04, 0, sword); tip.rotation.x = Math.PI; tip.rotation.y = Math.PI / 4;
   mesh(sphere(.04, 6, 5), gold, 0, .09, 0, sword);
-  // three health pips over the helm
-  const pipM = new T.MeshBasicMaterial({ color: 0xD9544A });
-  const pips = [-1, 0, 1].map(i => { const p = mesh(sphere(.045, 10, 8), pipM, i * .14, 1.62, .1, root); p.visible = false; return p; });
-  shadowAll(tmp, true); pips.forEach(p => p.castShadow = false);
+  shadowAll(tmp, true);
   root.scale.setScalar(SC);
 
-  let sb = k0, state = 'sleep', tm = 0, hits = 0, flash = 0, push = 0, lastStep = Math.floor(k0), pipPop = [0, 0, 0];
+  let sb = k0, state = 'sleep', tm = 0, hits = 0, flash = 0, push = 0, lastStep = Math.floor(k0);
   const GUARD = -2.3, RAISED = -3.0, DOWN = -1.2;   // sword carried upright, raised overhead when she is close
   let data = null;
   const placeAt = () => {
@@ -1465,14 +1504,13 @@ function Boss(k0){
     head(){ helm.getWorldPosition(headPos); return tower.worldToLocal(headPos); },
     hurt(){
       if (hits >= 3 || state === 'sleep') return;
-      hits++; pipPop[hits - 1] = 1e-4; flash = 1; push = .7; state = 'stagger'; tm = 0;
+      hits++; flash = 1; push = .7; state = 'stagger'; tm = 0;
       AU.crumble(.8); AU.rattle(1); AU.tone(180, 'sawtooth', .35, .05, 0, 90);
     },
     update(c){
       tm += c.dt; flash = Math.max(0, flash - c.dt * 2.5);
       const d = sb - c.s;
       flashMats.forEach(m => m.emissive.setRGB(flash, flash * .55, flash * .45));
-      pips.forEach((p, i) => { if (pipPop[i] > 0){ pipPop[i] += c.dt; const u = pipPop[i] / .35; p.scale.setScalar(u < 1 ? 1 + u * .8 : 0); if (u >= 1) p.visible = false; } });
       if (state === 'sleep'){
         helm.rotation.x = .35 + Math.sin(c.t * 1.2) * .03; armR.rotation.x = -.15; armL.rotation.x = 0;
         if (G.state === 'play' && d < WAKE && d > 0){ state = 'wake'; tm = 0; AU.rattle(1); AU.tone(110, 'sawtooth', 1.1, .06, 0, 70); AU.tone(165, 'sawtooth', 1.1, .04, .1, 90); }
@@ -1482,7 +1520,6 @@ function Boss(k0){
         eyeM.color.setRGB(lerp(.23, 1, u), lerp(.2, .35, u), lerp(.35, .3, u));
         armR.rotation.x = lerp(-.15, GUARD, u);
         root.position.x += (Math.random() - .5) * .03 * (1 - u);
-        pips.forEach(p => p.visible = u > .5);
         if (tm >= 1.3){ state = 'walk'; tm = 0; }
       } else if (state === 'walk' || state === 'stagger'){
         if (state === 'walk' && G.state === 'play'){
@@ -1513,6 +1550,7 @@ function Boss(k0){
         for (const dd of data){
           const fi = clamp(f * 1.14 - dd.d, 0, 1), e = easeOut(fi);
           dd.m.position.lerpVectors(dd.S.p, dd.B.p, e); dd.m.quaternion.copy(dd.S.q).slerp(dd.B.q, e);
+          dd.m.scale.lerpVectors(dd.S.sc, dd.B.sc, e);
           dd.m.position.y += Math.sin(fi * Math.PI) * .35;
         }
         if (tm >= .7){ state = 'pile'; }
@@ -1523,18 +1561,42 @@ function Boss(k0){
       if (hits >= 3 || state === 'collapse' || state === 'pile') return false;
       return s > sb - (state === 'sleep' ? .75 : TOUCH);
     },
-    dispose(){ tower.remove(root); }
+    dispose(){ tower.remove(root); if (data) data.forEach(dd => tower.remove(dd.m)); }
   };
   function fallApart(){
-    placeAt();
-    root.updateMatrixWorld(true);
-    data = pieces.map(p => {
-      root.attach(p);
-      const x = (rnd() - .5) * .9, z = (rnd() - .5) * .5;
-      const e = new T.Euler((rnd() < .6 ? Math.PI / 2 : 0) + (rnd() - .5) * .4, rnd() * 6.28, rnd() < .6 ? Math.PI / 2 : 0);
-      return { m: p, S: { p: p.position.clone(), q: p.quaternion.clone() }, B: { p: new T.Vector3(x, .05, z), q: new T.Quaternion().setFromEuler(e) }, d: rnd() * .12 };
+    // every bone comes to rest flat on the tread of one step, long pieces laid across the stair,
+    // so nothing sticks into the steps above or below, the tower wall or the side beam
+    placeAt(); root.updateMatrixWorld(true);
+    const sp = Math.round(sb), baseA = sp * DA, y0 = sp * CFG.H, UPV = new T.Vector3(0, 1, 0);
+    const at = (r, da) => new T.Vector3(r * Math.sin(baseA + da), y0, r * Math.cos(baseA + da));
+    const radial = da => new T.Vector3(Math.sin(baseA + da), 0, Math.cos(baseA + da));
+    const yawQ = da => new T.Quaternion().setFromAxisAngle(UPV, baseA + da + rnd() * 6.28);
+    const lie = (d, len, r, da, h) => { // a limb hanging along -y: lay it along d, its front (+z) facing up
+      const yA = d.clone().negate(), zA = UPV.clone(), xA = new T.Vector3().crossVectors(yA, zA);
+      const q = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(xA, yA, zA));
+      const c = at(r, da); c.y += h; return { p: c.addScaledVector(d, -len / 2), q };
+    };
+    const rod = (len, r, da, h) => { const d = radial(da).multiplyScalar(rnd() < .5 ? 1 : -1); const q = new T.Quaternion().setFromUnitVectors(UPV, d); const c = at(r, da); c.y += h; return { p: c, q }; };
+    const flat = (r, da, h, extra) => { const q = yawQ(da); if (extra) q.multiply(extra); const c = at(r, da); c.y += h; return { p: c, q }; };
+    const ribQ = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), Math.PI / 2);
+    const sc = SC, targets = [
+      flat(2.72, .09, .14 * sc),                                   // helm sits upright
+      flat(3.5, -.05, .03 * sc),                                   // collar bone
+      rod(.42 * sc, 3.35, .04, .028 * sc),                         // spine
+      flat(3.1, -.08, .02 * sc, ribQ), flat(2.95, .05, .02 * sc, ribQ), flat(3.55, .08, .02 * sc, ribQ),
+      flat(3.25, .1, .02, ribQ),                                   // breastplate, lying flat
+      flat(2.62, -.06, .07 * sc), flat(3.7, -.02, .07 * sc),       // pauldrons
+      flat(2.9, -.02, .045 * sc),                                  // pelvis
+      lie(radial(-.07), .47 * sc, 3.05, -.07, .035 * sc), lie(radial(.02).negate(), .47 * sc, 3.2, .02, .035 * sc), // legs
+      lie(radial(-.1), .42 * sc, 2.95, -.1, .03 * sc),             // left arm, shield up
+      lie(radial(.07).multiplyScalar(rnd() < .5 ? 1 : -1), 1.5 * sc * .55, 3.07, .07, .035)  // sword arm, shrunk to fit across the step
+    ];
+    data = pieces.map((p, i) => {
+      tower.attach(p);
+      const t = targets[i] || flat(2.8 + rnd() * .8, (rnd() - .5) * .16, .05);
+      const bsc = p.scale.clone(); if (i === 13) bsc.multiplyScalar(.55);
+      return { m: p, S: { p: p.position.clone(), q: p.quaternion.clone(), sc: p.scale.clone() }, B: { p: t.p, q: t.q, sc: bsc }, d: rnd() * .12 };
     });
-    tmp.visible = true; pips.forEach(p => p.visible = false);
     eyeM.color.setRGB(.23, .2, .35);
     AU.crumble(1); AU.rattle(1.2);
     [523, 659, 784, 1047].forEach((f, i) => AU.tone(f, 'triangle', .5, .05, .1 + i * .12));
@@ -1649,7 +1711,7 @@ function clearHazards(){ hazards.forEach(h => h.dispose()); hazards.length = 0; 
 const G = { state: 'title', s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', best: store.get('lg_best', 0), lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, hinted: store.get('lg_hints2', {}), newRec: false, sit: 0, mult: 1, endT: 0 };
 const $ = id => document.getElementById(id);
 const ui = { hud: $('hud'), score: $('score'), ribbon: $('ribbon'), charges: $('charges'), titleP: $('titleP'), overP: $('overP'), pauseP: $('pauseP'),
-  overScore: $('overScore'), overBest: $('overBest'), overWhy: $('overWhy'), toast: $('toast'), floor: $('floor'), dbg: $('dbg'), bestTitle: $('bestTitle'), sfxBtn: $('sfxBtn'), musBtn: $('musBtn'), mist: $('mist'), multBadge: $('multBadge'), endP: $('endP') };
+  overScore: $('overScore'), overBest: $('overBest'), overWhy: $('overWhy'), toast: $('toast'), floor: $('floor'), dbg: $('dbg'), bestTitle: $('bestTitle'), sfxBtn: $('sfxBtn'), musBtn: $('musBtn'), mist: $('mist'), cloud: $('cloud'), multBadge: $('multBadge'), endP: $('endP') };
 ui.bestTitle.textContent = G.best ? `Рекорд: ${G.best} шагов` : '';
 function syncToggles(){ ui.sfxBtn.setAttribute('aria-pressed', String(AU.sfxOn)); ui.musBtn.setAttribute('aria-pressed', String(AU.musOn)); }
 syncToggles();
@@ -1669,7 +1731,7 @@ function reset(){
   clearHazards(); clearSteps();
   resetGen((Math.random() * 1e9) | 0);
   Object.assign(G, { s: 1.2, maxS: 1.2, pending: 0, speed: 0, t: 0, charges: 3, regen: 0, deadT: 0, cause: '', lastStep: 1, floor: 0, restartAcc: 0, flicker: 0, newRec: false, sit: 0, mult: 1, endT: 0 });
-  ui.multBadge.hidden = true; ui.endP.hidden = true; ui.mist.style.opacity = 0; zoom = 1;
+  ui.multBadge.hidden = true; ui.endP.hidden = true; ui.mist.style.opacity = 0; ui.cloud.style.opacity = 0; MIST.amt.value = 0; zoom = 1;
   flame.scale.setScalar(.001); fireLight.intensity = 0; flameHalo.material.opacity = 0; beamM.opacity = 0;
   camS = G.s; camY = G.s * CFG.H;
   renderCharges(); ui.score.textContent = '0';
@@ -1802,7 +1864,7 @@ function resize(){
 window.addEventListener('resize', resize); resize();
 
 function placeCamera(dt){
-  if (G.state === 'ending'){ camS += dt * .35; camY = lerp(camY, ROOF_Y + .6, 1 - Math.exp(-dt * 1.2)); }
+  if (G.state === 'ending'){ camY = lerp(camY, ROOF_Y + .6, 1 - Math.exp(-dt * 1.2)); }
   else { camS = lerp(camS, G.s, 1 - Math.exp(-dt * 6)); camY = lerp(camY, G.s * CFG.H, 1 - Math.exp(-dt * 4)); }
   tower.rotation.y = CFG.base - camS * DA;
   const vf = camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
@@ -1820,21 +1882,32 @@ function placeCamera(dt){
 
 // Fog on floor 8: everything is veiled except a circle around the princess's lantern.
 const _sp = new T.Vector3();
+const _cp = new T.Vector3(), _cs = new T.Vector3(), _cw = new T.Vector3();
+function updateCloudBank(){
+  const gy = G.s * CFG.H, near = Math.abs(gy - 700 * CFG.H) < 14 || Math.abs(gy - 800 * CFG.H) < 14;
+  cloudBank.visible = near && G.state !== 'ending'; if (!cloudBank.visible) return;
+  girl.root.getWorldPosition(_cp); _cp.y += .6; const pd = _cp.distanceTo(camera.position);
+  _cs.copy(_cp).project(camera); const px = _cs.x * camera.aspect, py = _cs.y;
+  for (const sp of cloudBank.children){
+    sp.getWorldPosition(_cw); const d3 = _cw.distanceTo(_cp), front = _cw.distanceTo(camera.position) < pd;
+    let a = .8 * clamp((d3 - 1.8) / 2.5, 0, 1) * clamp((_cw.distanceTo(camera.position) - 7) / 6, 0, 1); // never wash over the camera
+    if (front){ _cw.project(camera); const ds = Math.hypot(_cw.x * camera.aspect - px, _cw.y - py); a *= clamp((ds - .45) / .7, 0, 1); }
+    sp.material.opacity = a;
+  }
+}
 function updateMist(){
   const s = G.s, m = G.state === 'ending' ? 0 : clamp((s - 700) / 12, 0, 1) * clamp((800 - s) / 12, 0, 1);
+  MIST.amt.value = m; ui.cloud.style.opacity = m.toFixed(3);
   if (m <= .001){ if (ui.mist.style.opacity !== '0') ui.mist.style.opacity = 0; return; }
-  girl.root.getWorldPosition(_sp); _sp.y += .7; _sp.project(camera);
-  const x = (_sp.x * .5 + .5) * window.innerWidth, y = (-_sp.y * .5 + .5) * window.innerHeight, R = Math.max(Math.min(window.innerWidth, window.innerHeight) * .19, 100);
-  // a pale cloud: soft drifting puffs over a milky haze, with a clear pocket around the lantern
+  girl.lcore.getWorldPosition(MIST.pos.value);
+  // light drifting puffs in front give the cloud some volume; the real fading is done per surface in 3D
   const t = G.t, W = window.innerWidth, Hh = window.innerHeight, puffs = [];
   for (let i = 0; i < 6; i++){
     const px = ((i * .37 + t * (.012 + i * .004)) % 1.3 - .15) * W, py = (.15 + ((i * .61) % 1) * .75) * Hh + Math.sin(t * .3 + i) * 30;
     const pr = (.22 + (i % 3) * .08) * Math.max(W, Hh);
-    puffs.push(`radial-gradient(circle at ${px.toFixed(0)}px ${py.toFixed(0)}px, rgba(250,250,255,.55), rgba(250,250,255,0) ${pr.toFixed(0)}px)`);
+    puffs.push(`radial-gradient(circle at ${px.toFixed(0)}px ${py.toFixed(0)}px, rgba(250,250,255,.28), rgba(250,250,255,0) ${pr.toFixed(0)}px)`);
   }
-  const hole = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, rgba(222,224,238,0) 0px, rgba(222,224,238,.16) ${(R * .75).toFixed(0)}px, rgba(214,216,232,.88) ${(R * 1.35).toFixed(0)}px, rgba(206,208,226,.97) ${(R * 1.9).toFixed(0)}px)`;
-  ui.mist.style.background = puffs.join(',') + ',' + hole;
-  ui.mist.style.webkitMaskImage = ui.mist.style.maskImage = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, transparent ${(R * .7).toFixed(0)}px, #000 ${(R * 1.4).toFixed(0)}px)`;
+  ui.mist.style.background = puffs.join(',');
   ui.mist.style.opacity = m.toFixed(3);
 }
 function updateGirl(dt){
@@ -1911,7 +1984,7 @@ function frame(now){
   updateSky(G.s);
   placeCamera(dt);
   if (G.state !== 'ending') updateGirl(dt); else { const L = girl; L.light.intensity = lerp(1.5, 2.1, skyState.night); L.lamp.rotation.z = Math.sin(G.t * 2.4) * .05; }
-  updateMist();
+  updateMist(); updateCloudBank();
 
   tower.updateMatrixWorld(true);
   girl.lcore.getWorldPosition(tmpV); lampLocal.copy(tower.worldToLocal(tmpV));
