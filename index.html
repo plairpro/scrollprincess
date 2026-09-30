@@ -88,7 +88,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .tgl[aria-pressed="false"]{background:#ECE7F0;color:#A69DB8}
 .tgl[aria-pressed="false"] .x{display:inline}
 .tgl[aria-pressed="false"] .w{display:none}
-.icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 34px !important;min-width:120px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 34px !important;min-width:120px;height:56px;box-sizing:border-box}
 .icon-btn svg{height:48px;width:auto;display:block}
 .icon-btn .ico{height:32px;width:32px;transition:transform .35s}
 .icon-btn .ico-play{height:34px;width:34px;margin-left:3px}
@@ -99,8 +99,9 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 .ico-walk{animation:bob .3s ease-in-out infinite alternate}
 @keyframes stepA{from{transform:rotate(22deg)}to{transform:rotate(-22deg)}}
 @keyframes bob{to{transform:translateY(-1.5px)}}
-.mini-card{width:min(270px,100%);padding:22px 22px 24px;gap:22px;align-items:center}
-.art{width:180px;height:auto;display:block;border-radius:16px}
+.mini-card{width:min(270px,100%);padding:30px 22px 34px;gap:22px;align-items:center}
+.mid{height:108px;display:flex;align-items:center;justify-content:center}
+.art{width:180px;height:149px;display:block;border-radius:16px;flex:none}
 .smoke{animation:smoke 2.4s ease-in-out infinite}
 @keyframes smoke{0%{opacity:0;transform:translateY(6px)}40%{opacity:.9}100%{opacity:0;transform:translateY(-10px)}}
 .swipe{width:112px;height:auto;display:block;margin:2px auto 26px;overflow:visible}
@@ -165,8 +166,8 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 
 <div class="panel" id="overP" hidden>
   <div class="card mini-card">
-    <svg class="art" viewBox="0 0 120 124" aria-hidden="true">
-      <rect width="120" height="124" rx="16" fill="#2E3272"/><g fill="#FFF6D8"><circle cx="14" cy="17" r="1.1"/><circle cx="36" cy="10" r=".9"/><circle cx="103" cy="50" r="1"/><circle cx="22" cy="57" r=".8"/><circle cx="84" cy="12" r=".8"/></g><circle cx="101" cy="20" r="7" fill="#FFF4C9"/><circle cx="104" cy="17.6" r="6.2" fill="#2E3272"/>
+    <svg class="art" viewBox="0 0 150 124" aria-hidden="true">
+      <rect width="150" height="124" rx="16" fill="#2E3272"/><g transform="translate(15 0)"><g fill="#FFF6D8"><circle cx="14" cy="17" r="1.1"/><circle cx="36" cy="10" r=".9"/><circle cx="103" cy="50" r="1"/><circle cx="22" cy="57" r=".8"/><circle cx="84" cy="12" r=".8"/></g><circle cx="101" cy="20" r="7" fill="#FFF4C9"/><circle cx="104" cy="17.6" r="6.2" fill="#2E3272"/>
       <path class="smoke" d="M60 58c-5-6 5-9 0-15s5-9 0-15" stroke="#B9B3CC" stroke-width="3" fill="none" stroke-linecap="round"/>
       <path d="M52 50h16l10 42H42Z" fill="#F8F5F1"/><rect x="42" y="89" width="36" height="4" rx="2" fill="#E2BE68"/>
       <rect x="49" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/><rect x="65" y="92" width="6" height="14" rx="2.5" fill="#F6D2BC"/>
@@ -176,9 +177,9 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
       <circle cx="60" cy="41" r="11" fill="#F6D2BC"/>
       <rect x="46.5" y="34" width="5.5" height="17" rx="1.5" fill="#F0D28A"/><rect x="68" y="34" width="5.5" height="17" rx="1.5" fill="#F0D28A"/>
       <path d="M54.5 42.5q1.5 1.6 3 0M62.5 42.5q1.5 1.6 3 0" stroke="#2A2230" stroke-width="1.7" fill="none" stroke-linecap="round"/>
-      <path d="M60 3 71.5 32h-23Z" fill="#F8F5F1"/><rect x="47" y="30" width="26" height="4.5" rx="2.2" fill="#E2BE68"/>
+      <path d="M60 3 71.5 32h-23Z" fill="#F8F5F1"/><rect x="47" y="30" width="26" height="4.5" rx="2.2" fill="#E2BE68"/></g>
     </svg>
-    <div class="big">
+    <div class="big mid">
       <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#4A3F6B"><ellipse cx="7.5" cy="8" rx="3" ry="4.6"/><ellipse cx="7.5" cy="16.2" rx="2.2" ry="1.9"/><ellipse cx="16.5" cy="6" rx="3" ry="4.6"/><ellipse cx="16.5" cy="14.2" rx="2.2" ry="1.9"/></g></svg>
       <span id="overScore">0</span>
     </div>
@@ -200,8 +201,8 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 
 <div class="panel" id="pauseP" hidden>
   <div class="card mini-card">
-    <svg class="art" viewBox="0 0 150 112" aria-hidden="true">
-      <rect width="150" height="112" rx="16" fill="#2E3272"/><g fill="#FFF6D8"><circle cx="18" cy="16" r="1.1"/><circle cx="45" cy="9" r=".9"/><circle cx="129" cy="45" r="1"/><circle cx="27" cy="52" r=".8"/><circle cx="105" cy="11" r=".8"/></g><circle cx="126" cy="18" r="7" fill="#FFF4C9"/><circle cx="130" cy="15.7" r="6.2" fill="#2E3272"/>
+    <svg class="art" viewBox="0 0 150 124" aria-hidden="true">
+      <rect width="150" height="124" rx="16" fill="#2E3272"/><g transform="translate(0 7)"><g fill="#FFF6D8"><circle cx="18" cy="16" r="1.1"/><circle cx="45" cy="9" r=".9"/><circle cx="129" cy="45" r="1"/><circle cx="27" cy="52" r=".8"/><circle cx="105" cy="11" r=".8"/></g><circle cx="126" cy="18" r="7" fill="#FFF4C9"/><circle cx="130" cy="15.7" r="6.2" fill="#2E3272"/>
       <defs><radialGradient id="glowS"><stop offset="0" stop-color="#FFE2A0" stop-opacity=".9"/><stop offset="1" stop-color="#FFE2A0" stop-opacity="0"/></radialGradient></defs>
       <rect x="14" y="70" width="122" height="9" rx="2" fill="#6DB39A"/><rect x="14" y="69" width="122" height="3" rx="1.5" fill="#EFF7F4"/><rect x="14" y="79" width="122" height="24" rx="3" fill="#E3A08F"/>
       <circle cx="104" cy="60" r="20" fill="url(#glowS)"/>
@@ -214,10 +215,9 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
       <rect x="52.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/><rect x="71.5" y="30" width="5" height="15" rx="1.5" fill="#F0D28A"/>
       <rect x="60.3" y="34" width="1.9" height="5" rx=".9" fill="#2A2230"/><rect x="66.8" y="34" width="1.9" height="5" rx=".9" fill="#2A2230"/>
       <ellipse cx="57.8" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/><ellipse cx="71.2" cy="40.5" rx="2.2" ry="1.2" fill="#F3AFA8"/>
-      <path d="M64.5 1 75 28H54Z" fill="#F8F5F1"/><rect x="53" y="26.5" width="23" height="4" rx="2" fill="#E2BE68"/>
+      <path d="M64.5 1 75 28H54Z" fill="#F8F5F1"/><rect x="53" y="26.5" width="23" height="4" rx="2" fill="#E2BE68"/></g>
     </svg>
-    <button class="btn go icon-btn" id="resumeBtn" aria-label="Продолжить"><svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19.2 12Z" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></button>
-    <div class="toggles">
+    <div class="toggles mid">
       <button class="tgl" id="sfxBtn" aria-pressed="true" aria-label="Звуки">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="w" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line class="x" x1="3" y1="3" x2="21" y2="21" stroke="#D9544A" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
@@ -225,6 +225,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l10-2v11.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><ellipse cx="6.8" cy="17.7" rx="2.8" ry="2.2" fill="currentColor"/><ellipse cx="16.8" cy="15.7" rx="2.8" ry="2.2" fill="currentColor"/><line class="x" x1="3" y1="3" x2="21" y2="21" stroke="#D9544A" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
     </div>
+    <button class="btn go icon-btn" id="resumeBtn" aria-label="Продолжить"><svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19.2 12Z" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
 
@@ -1472,6 +1473,7 @@ function reset(){
 function start(){
   AU.unlock(); AU.start();
   if (G.state !== 'title') reset();
+  AU.wake();
   G.state = 'play'; G.pending = 0;
   ui.titleP.hidden = true; ui.overP.hidden = true; ui.pauseP.hidden = true; ui.endP.hidden = true; ui.hud.hidden = false;
   try { canvas.focus({ preventScroll: true }); } catch(e){}
@@ -1524,7 +1526,7 @@ function updateEnding(dt){
 }
 function pause(on){
   if (on && G.state === 'play'){ G.state = 'paused'; ui.pauseP.hidden = false; AU.duck(true); }
-  else if (!on && G.state === 'paused'){ G.state = 'play'; ui.pauseP.hidden = true; G.pending = 0; AU.init(); AU.duck(false); }
+  else if (!on && G.state === 'paused'){ G.state = 'play'; ui.pauseP.hidden = true; G.pending = 0; AU.init(); AU.wake(); AU.duck(false); }
 }
 
 /* ============================== INPUT ============================== */
@@ -1570,9 +1572,13 @@ $('endAgain').addEventListener('click', () => { G.state = 'over'; start(); });
 $('resumeBtn').addEventListener('click', () => pause(false));
 ui.sfxBtn.addEventListener('click', () => { AU.unlock(); AU.setSfx(!AU.sfxOn); syncToggles(); });
 ui.musBtn.addEventListener('click', () => { AU.unlock(); AU.setMusic(!AU.musOn); syncToggles(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden){ pause(true); AU.sleep(); } else AU.wake(); });
+function away(){ pause(true); AU.sleep(); }
+function back(){ if (document.hidden || !document.hasFocus()) return; if (G.state === 'ending') AU.wake(); } // otherwise sound waits for a play / restart button
+document.addEventListener('visibilitychange', () => { if (document.hidden) away(); else back(); });
+window.addEventListener('blur', away);
+window.addEventListener('focus', back);
 window.addEventListener('pagehide', () => AU.sleep());
-window.addEventListener('pageshow', () => { if (!document.hidden) AU.wake(); });
+window.addEventListener('pageshow', back);
 ['touchend', 'click', 'keydown', 'pointerup'].forEach(ev => document.addEventListener(ev, () => { if (!AU.ok() && !document.hidden) AU.unlock(); }, { capture: true, passive: true }));
 const sndPill = $('sndPill');
 sndPill.addEventListener('click', () => { AU.unlock(); });
