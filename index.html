@@ -256,6 +256,7 @@ body{margin:0;background:var(--night);color:var(--ink);font-family:var(--f-body)
 <div class="dbg" id="dbg" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/effects/OutlineEffect.js"></script>
 <script>
 (() => {
 'use strict';
@@ -548,6 +549,17 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = T.PCFSoftShadowMap;
 
 const scene = new T.Scene();
+// Soft ink outline around solid shapes (toy look). Glows, beams, shadows, sprites and glass get none.
+const outline = T.OutlineEffect ? new T.OutlineEffect(renderer, { defaultThickness: .0032, defaultColor: [.2, .16, .34] }) : null;
+let outlineTick = 0;
+const NO_LINE = { visible: false };
+function markOutlines(){
+  scene.traverse(o => { const ms = o.material; if (!ms) return; (Array.isArray(ms) ? ms : [ms]).forEach(m => {
+    if (m.userData.outlineParameters) return;
+    const solid = (m.isMeshStandardMaterial || m.isMeshLambertMaterial) && !m.transparent && m.opacity >= 1 && m.blending !== T.AdditiveBlending && !o.userData.noLine;
+    m.userData.outlineParameters = solid ? { thickness: .0032 } : NO_LINE;
+  }); });
+}
 scene.fog = new T.Fog(0x2E3272, 16, 40);
 const camera = new T.PerspectiveCamera(32, 1, .1, 140);
 // Floor 8 cloud: every surface fades into a pale cloud by its real 3D distance from the lantern,
@@ -569,7 +581,7 @@ T.Material.prototype.onBeforeCompile = function(sh){
 
 const hemi = new T.HemisphereLight(0xB6BEFF, 0x3A3F7A, .9); scene.add(hemi);
 const moonLight = new T.DirectionalLight(0xCFD8FF, .55); moonLight.castShadow = true;
-moonLight.shadow.mapSize.set(1024, 1024); Object.assign(moonLight.shadow.camera, { left: -4.5, right: 4.5, top: 4.5, bottom: -4.5, near: .5, far: 26 });
+moonLight.shadow.mapSize.set(2048, 2048); Object.assign(moonLight.shadow.camera, { left: -13, right: 13, top: 13, bottom: -13, near: .5, far: 40 }); // covers the whole view, no clipped shadows
 moonLight.shadow.bias = -0.0008; moonLight.shadow.radius = 5;
 scene.add(moonLight); scene.add(moonLight.target);
 
@@ -1999,7 +2011,7 @@ function frame(now){
   if (simDt > 0) for (const h of hazards) if (Math.abs(h.k - G.s) < 50) h.update(ctx);
 
   girl.root.getWorldPosition(tmpV);
-  moonLight.position.set(tmpV.x + 3, tmpV.y + 8, tmpV.z + 6); moonLight.target.position.copy(tmpV);
+  moonLight.position.set(tmpV.x + 5.5, tmpV.y + 15, tmpV.z + 11); moonLight.target.position.copy(tmpV);
 
   for (const c of clouds){ const u = c.userData; u.a += u.sp * dt; const rel = ((u.y - camY) % 30 + 45) % 30 - 15; c.position.set(Math.sin(u.a) * u.r, camY + rel, -Math.abs(Math.cos(u.a)) * u.r - 4); c.rotation.y = u.a; }
   for (let i = 0; i < flyN; i++){ const f = flySeed[i]; const a = f[0] + G.t * .08 + Math.sin(G.t * .5 + f[3]) * .2; flyPos[i * 3] = Math.sin(a) * f[1]; flyPos[i * 3 + 1] = camY + f[2] + Math.sin(G.t * .7 + f[3]) * .4; flyPos[i * 3 + 2] = Math.cos(a) * f[1]; }
@@ -2013,7 +2025,7 @@ function frame(now){
     const near = hazards.filter(h => Math.abs(h.k - G.s) < 8).map(h => `${h.type}@${h.k}${h.deadly(G.s) ? ' !' : ''}`).join('  ');
     ui.dbg.textContent = `fps ${fps}  s ${G.s.toFixed(2)}  v ${G.speed.toFixed(1)}  lamp ${G.charges}\n${near}`;
   }
-  renderer.render(scene, camera);
+  if (outline){ if ((outlineTick++ & 31) === 0) markOutlines(); outline.render(scene, camera); } else renderer.render(scene, camera);
 }
 
 reset(); G.state = 'title';
