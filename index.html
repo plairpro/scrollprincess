@@ -999,7 +999,7 @@ function Skeleton(k, first){
 function RavenPerch(k, first){
   const C = CFG.HAZ.raven;
   const root = new T.Group(); place(root, k, CFG.ROUT - .12, .5 + .12); tower.add(root);
-  const r = buildRaven(1); r.g.rotation.y = -Math.PI / 4; root.add(r.g);
+  const r = buildRaven(.8); r.g.rotation.y = -Math.PI / 4; root.add(r.g);
   const bang = bangSprite(); bang.position.set(0, .45, 0); root.add(bang);
   let state = 'perch', tm = 0, warn = 0, bodyYaw = -Math.PI / 4, foe = null; const prev = new T.Vector3(), tgt = new T.Vector3(), rel = new T.Vector3();
   const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -1699,9 +1699,16 @@ function generate(uptoS){
     if (!type){ const pool = unlocked.filter(t => t !== gen.last); type = pool[Math.floor(gen.rng() * pool.length)] || unlocked[0]; }
     const first = !gen.shown[type];
     gen.shown[type] = true; gen.last = type;
-    const h = MAKERS[type](k, first); hazards.push(h);
+    // one turn of the spiral is 24 steps: keep ravens and skeletons from lining up above one another
+    if (type === 'skeleton' || type === 'raven'){
+      const stacked = kk => hazards.some(o => (o.type === 'skeleton' || o.type === 'raven') && kk - o.k >= 12 && kk - o.k <= 52 && Math.min(((kk - o.k) % 24 + 24) % 24, 24 - ((kk - o.k) % 24 + 24) % 24) < 4);
+      let tries = 0; while (stacked(gen.next) && tries++ < 6) gen.next += 2 + Math.floor(gen.rng() * 3);
+      if (gen.next >= ROOF_S - 6 || Math.floor(gen.next / 100) !== Math.floor(k / 100)) gen.next = k;
+    }
+    const kk = gen.next;
+    const h = MAKERS[type](kk, first); hazards.push(h);
     const len = h.len;
-    gen.next = k + len + (first ? 11 : Math.round(lerp(10, 5.5, diff) + gen.rng() * 3.5));
+    gen.next = kk + len + (first ? 11 : Math.round(lerp(9, 5, diff) + gen.rng() * 6));
   }
 }
 function pruneHazards(s){ for (let i = hazards.length - 1; i >= 0; i--){ const h = hazards[i]; if (h.k + h.len < s - CFG.buildBehind + 2 && !h.broken){ h.dispose(); hazards.splice(i, 1); } } } // a broken stair stays broken behind her
