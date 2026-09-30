@@ -907,8 +907,14 @@ function buildGirl(){
   });
   // blocky blonde bob with straight bangs
   const hairCap = mesh(new T.SphereGeometry(.218, 20, 10, 0, Math.PI * 2, 0, Math.PI * .5), hair, 0, .012, -.01, head); hairCap.scale.set(1.02, 1.08, 1.02);
-  mesh(new T.BoxGeometry(.36, .1, .09), hair, 0, .105, .15, head).rotation.x = -.25;
-  [-1, 1].forEach(sd => { const side = mesh(new T.BoxGeometry(.075, .42, .27), hair, sd * .19, -.1, -.005, head); side.rotation.z = sd * .05; });
+  const bangs = mesh(new T.BoxGeometry(.36, .1, .09), hair, 0, .105, .15, head); bangs.rotation.x = -.25;
+  // cartoon ink strokes that read as locks of hair
+  const inkM = B(0x3A2F5E), strand = (parent, x, y, z, w, h, d) => mesh(new T.BoxGeometry(w, h, d), inkM, x, y, z, parent);
+  [-.12, -.045, .03, .105].forEach((x, i) => strand(bangs, x, -.012 - (i % 2) * .01, .047, .007, .06 + (i % 2) * .018, .004));
+  [-1, 1].forEach(sd => { const side = mesh(new T.BoxGeometry(.075, .42, .27), hair, sd * .19, -.1, -.005, head); side.rotation.z = sd * .05;
+    [[-.085, .26], [-.02, .32], [.05, .24], [.105, .29]].forEach(([z, h]) => strand(side, sd * .0395, -.2 + h / 2 + .02, z, .004, h, .007)); // outer face
+    [[-.018, .2], [.014, .27]].forEach(([x, h]) => strand(side, x, -.2 + h / 2 + .02, .137, .006, h, .004));                             // front face
+  });
   mesh(new T.BoxGeometry(.4, .44, .1), hair, 0, -.1, -.155, head);
   // hennin hat, gold band + gem, veil down the back
   const hat = new T.Group(); hat.position.set(0, .165, -.03); hat.rotation.x = -.2; head.add(hat);
