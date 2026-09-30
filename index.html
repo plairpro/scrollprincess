@@ -1629,8 +1629,8 @@ function updateMist(){
   const s = G.s, m = G.state === 'ending' ? 0 : clamp((s - 700) / 12, 0, 1) * clamp((800 - s) / 12, 0, 1);
   if (m <= .001){ if (ui.mist.style.opacity !== '0') ui.mist.style.opacity = 0; return; }
   girl.root.getWorldPosition(_sp); _sp.y += .7; _sp.project(camera);
-  const x = (_sp.x * .5 + .5) * window.innerWidth, y = (-_sp.y * .5 + .5) * window.innerHeight, R = Math.min(window.innerWidth, window.innerHeight) * .19;
-  ui.mist.style.background = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, rgba(64,60,116,0) 0px, rgba(64,60,116,0) ${(R * .95).toFixed(0)}px, rgba(58,55,108,.8) ${(R * 1.8).toFixed(0)}px, rgba(46,44,92,.97) ${(R * 2.8).toFixed(0)}px)`;
+  const x = (_sp.x * .5 + .5) * window.innerWidth, y = (-_sp.y * .5 + .5) * window.innerHeight, R = Math.max(Math.min(window.innerWidth, window.innerHeight) * .19, 100);
+  ui.mist.style.background = `radial-gradient(circle at ${x.toFixed(0)}px ${y.toFixed(0)}px, rgba(64,60,116,0) 0px, rgba(64,60,116,.05) ${(R * .8).toFixed(0)}px, rgba(56,53,106,.9) ${(R * 1.35).toFixed(0)}px, rgba(44,42,88,1) ${(R * 1.9).toFixed(0)}px)`;
   ui.mist.style.opacity = m.toFixed(3);
 }
 function updateGirl(dt){
