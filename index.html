@@ -453,19 +453,33 @@ const AU = {
     s.connect(f); f.connect(g); g.connect(this.sfx); s.start(t, Math.random()); s.stop(t + dur + .05);
     return { f, g };
   },
-  step(h){ this.noise(.05, .035, 'bandpass', 1100 + Math.random() * 400, 2); if (this.music) this.tone(this.mf(this.chordTone()), 'sine', .25, .012); },
+  /* ---- haptics: Android vibrates; iPhone Safari has no vibrate(), so a hidden switch gives a light tick. Never throws. ---- */
+  buzz(p){
+    try {
+      if (!this.sfxOn || document.hidden) return;
+      const now = performance.now(); if (now - (this._bz || 0) < 45) return; this._bz = now;
+      if (navigator.vibrate){ navigator.vibrate(p); return; }
+      if (!this._sw){
+        const l = document.createElement('label'); l.setAttribute('aria-hidden', 'true'); l.style.cssText = 'position:fixed;left:-99px;top:-99px;width:1px;height:1px;opacity:0;pointer-events:none';
+        const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); i.tabIndex = -1; l.appendChild(i); document.body.appendChild(l); this._sw = l;
+      }
+      const n = Array.isArray(p) ? Math.min(3, Math.ceil(p.filter((_, k) => k % 2 === 0).reduce((a, b) => a + b, 0) / 40)) : 1;
+      for (let k = 0; k < Math.max(1, n); k++) setTimeout(() => { try { this._sw.click(); } catch (e) {} }, k * 70);
+    } catch (e) {}
+  },
+  step(h){ this.buzz(7); this.noise(.05, .035, 'bandpass', 1100 + Math.random() * 400, 2); if (this.music) this.tone(this.mf(this.chordTone()), 'sine', .25, .012); },
   musicBox(){ [659.3, 784, 987.8, 1174.7, 987.8, 1318.5].forEach((f, i) => { this.tone(f, 'triangle', .9, .07, i * .16, 0, this.mus); this.tone(f * 2, 'sine', .5, .015, i * .16, 0, this.mus); }); },
-  caw(v = 1){ for (let i = 0; i < 2; i++){ this.tone(760, 'sawtooth', .18, .05 * v, i * .22, 420); this.noise(.16, .03 * v, 'bandpass', 1300, 3, i * .22); } },
-  rattle(v = 1){ for (let i = 0; i < 7; i++) this.noise(.03, .06 * v, 'highpass', 2600 + Math.random() * 1800, 1, Math.random() * .35); },
+  caw(v = 1){ this.buzz(30); for (let i = 0; i < 2; i++){ this.tone(760, 'sawtooth', .18, .05 * v, i * .22, 420); this.noise(.16, .03 * v, 'bandpass', 1300, 3, i * .22); } },
+  rattle(v = 1){ this.buzz([25, 15, 25, 15, 25]); for (let i = 0; i < 7; i++) this.noise(.03, .06 * v, 'highpass', 2600 + Math.random() * 1800, 1, Math.random() * .35); },
   wings(v = 1){ const r = this.noise(1.3, .09 * v, 'bandpass', 520, .8, 0, .5); if (!r) return; const lfo = this.ctx.createOscillator(), lg = this.ctx.createGain(); lfo.frequency.value = 13; lg.gain.value = 300; lfo.connect(lg); lg.connect(r.f.frequency); lfo.start(); lfo.stop(this.ctx.currentTime + 1.4); },
-  crumble(v = 1){ this.noise(.55, .12 * v, 'lowpass', 380, .7); this.tone(90, 'sine', .35, .06 * v, 0, 50); },
-  crack(v = 1){ this.noise(.08, .06 * v, 'highpass', 1800, 1); },
+  crumble(v = 1){ this.buzz([45, 25, 70]); this.noise(.55, .12 * v, 'lowpass', 380, .7); this.tone(90, 'sine', .35, .06 * v, 0, 50); },
+  crack(v = 1){ this.buzz(16); this.noise(.08, .06 * v, 'highpass', 1800, 1); },
   chime(){ this.tone(1318.5, 'sine', .6, .08, 0, 880); this.tone(1975, 'sine', .4, .03, .05); },
   lampBack(){ this.tone(880, 'sine', .35, .04); this.tone(1318.5, 'sine', .45, .03, .08); },
   tick(v = 1){ this.noise(.04, .07 * v, 'bandpass', 2400, 4); this.tone(1200, 'square', .03, .012 * v); },
   dust(v = 1){ this.noise(.5, .04 * v, 'highpass', 3000, .5, 0, .15); },
   twinkle(){ [1567.98, 2093].forEach((f, i) => this.tone(f, 'sine', .7, .018, i * .12)); },
-  death(){ [784, 659.3, 523.3, 392].forEach((f, i) => this.tone(f, 'triangle', 1.2, .08, i * .22)); },
+  death(){ this.buzz([90, 40, 140]); [784, 659.3, 523.3, 392].forEach((f, i) => this.tone(f, 'triangle', 1.2, .08, i * .22)); },
   start(){ [523.3, 659.3, 784].forEach((f, i) => this.tone(f, 'triangle', .6, .06, i * .09)); },
   /* ---- generative night music: chord progressions, bass, music-box melody, echo ---- */
   startMusic(){
@@ -1708,7 +1722,7 @@ const POOL9 = ['skeleton', 'raven', 'hand', 'moths', 'flock']; // floor 9: no cr
 function poolFor(k){ const f = Math.floor(k / 100) + 1; return f >= 10 ? ['kneel'] : f === 9 ? POOL9 : POOLS[Math.min(f, 6)]; }
 const FLOOR_NOTES = { 7: 'Седьмой этаж: на лестнице зелье скорости', 8: 'Туман! Видно только то, что освещает фонарь', 9: 'Девятый этаж. Все обитатели башни здесь', 10: 'Последний этаж. Рыцари встречают принцессу' };
 const gen = { rng: null, next: 22, shown: {}, last: '', potion: false, bag: [], bagFloor: -1 };
-function resetGen(seed){ gen.rng = mulberry32(seed); gen.next = 22; gen.shown = {}; gen.last = ''; gen.potion = false; gen.bag = []; gen.bagFloor = -1; gen.boss = false; }
+function resetGen(seed){ gen.rng = mulberry32(seed); gen.next = 22; gen.shown = {}; gen.last = ''; gen.potion = false; gen.bag = []; gen.bagFloor = -1; gen.boss = false; gen.hist = []; }
 // Every floor gets a shuffled "bag" that contains each accumulated threat at least once;
 // the threat new to this floor opens the floor and appears once more than the others.
 function fillBag(k){
@@ -1738,9 +1752,13 @@ function generate(uptoS){
     const unlocked = poolFor(k), f = Math.floor(k / 100) + 1;
     if (gen.bagFloor !== f) fillBag(k);
     let type = gen.bag.shift();
-    if (!type){ const pool = unlocked.filter(t => t !== gen.last); type = pool[Math.floor(gen.rng() * pool.length)] || unlocked[0]; }
+    // never the same threat twice in a row, and ravens/skeletons not again within the next two threats
+    gen.hist = gen.hist || [];
+    const tooSoon = t => t === gen.last || ((t === 'raven' || t === 'skeleton') && gen.hist.slice(-2).includes(t));
+    if (type && tooSoon(type)){ const j = gen.bag.findIndex(t => !tooSoon(t)); if (j >= 0){ const alt = gen.bag.splice(j, 1)[0]; gen.bag.unshift(type); type = alt; } else { gen.bag.unshift(type); type = null; } }
+    if (!type){ let pool = unlocked.filter(t => !tooSoon(t)); if (!pool.length) pool = unlocked.filter(t => t !== gen.last); type = pool[Math.floor(gen.rng() * pool.length)] || unlocked[0]; }
     const first = !gen.shown[type];
-    gen.shown[type] = true; gen.last = type;
+    gen.shown[type] = true; gen.last = type; gen.hist.push(type);
     // one turn of the spiral is 24 steps: keep ravens and skeletons from lining up above one another
     if (type === 'skeleton' || type === 'raven'){
       const stacked = kk => hazards.some(o => (o.type === 'skeleton' || o.type === 'raven') && kk - o.k >= 12 && kk - o.k <= 52 && Math.min(((kk - o.k) % 24 + 24) % 24, 24 - ((kk - o.k) % 24 + 24) % 24) < 4);
