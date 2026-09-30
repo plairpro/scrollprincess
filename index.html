@@ -667,7 +667,7 @@ function makeStep(j){
 function syncSteps(s){
   const lo = Math.floor(s) - CFG.buildBehind, hi = Math.floor(s) + CFG.buildAhead;
   for (const [j, g] of steps){ if (j < lo || j > hi){ tower.remove(g); steps.delete(j); } }
-  for (let j = Math.max(-6, lo); j <= Math.min(hi, ROOF_S - 1); j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
+  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
 }
 function clearSteps(){ for (const [, g] of steps) tower.remove(g); steps.clear(); }
 
