@@ -558,8 +558,9 @@ const bands = []; // no horizontal bands: they cut through windows
 
 
 /* ============================== STEPS ============================== */
-const cliffGeo = new T.BoxGeometry(L * 1.07, .46, W);
-const grassGeo = new T.BoxGeometry(L * 1.09, .08, W + .06);
+const TREAD_IN = .1; // treads stop short of the outer beam so their corners never poke through it
+const cliffGeo = new T.BoxGeometry(L * 1.07, .46, W - TREAD_IN);
+const grassGeo = new T.BoxGeometry(L * 1.09, .08, W - TREAD_IN);
 const frostGeo = new T.BoxGeometry(L * 1.09, .05, .1);
 const postGeo = new T.CylinderGeometry(.04, .045, .46, 6);
 const railLen = 2 * (CFG.ROUT - .12) * Math.sin(DA / 2);
@@ -577,9 +578,10 @@ function stepBody(parent, j, z = 0, width = W, cliff, grass){
   const g = new T.Group(); g.position.z = z; parent.add(g);
   const cg = width === W ? cliffGeo : new T.BoxGeometry(L * 1.07, .46, width);
   const gg = width === W ? grassGeo : new T.BoxGeometry(L * 1.09, .08, width + .06);
-  const c = mesh(cg, M(cliff || (j % 2 ? PAL.cliff : PAL.cliff2)), 0, -.27, 0, g); c.receiveShadow = true; c.castShadow = true;
-  const gr = mesh(gg, M(grass || (j % 2 ? PAL.grass : PAL.grass2)), 0, -.035, 0, g); gr.receiveShadow = true;
-  if (width === W || z > 0) mesh(frostGeo, M(PAL.frost), 0, .005, width / 2 - .02, g);
+  const zo = width === W ? -TREAD_IN / 2 : 0;
+  const c = mesh(cg, M(cliff || (j % 2 ? PAL.cliff : PAL.cliff2)), 0, -.27, zo, g); c.receiveShadow = true; c.castShadow = true;
+  const gr = mesh(gg, M(grass || (j % 2 ? PAL.grass : PAL.grass2)), 0, -.035, zo, g); gr.receiveShadow = true;
+  if (width !== W && z > 0) mesh(frostGeo, M(PAL.frost), 0, .005, width / 2 - .02, g);
   return g;
 }
 function addRail(g, j){
@@ -664,12 +666,37 @@ function makeStep(j){
   }
   tower.add(g); return g;
 }
+// One continuous helical side beam (stringer) with a snowy curb and a smooth underside,
+// so the outer edge reads as a single spiral staircase instead of separate boxes.
+const STR = { ro: CFG.ROUT + .035, ri: CFG.ROUT - .09, curb: .045, depth: .72, n: 6 };
+function helixStrip(j, fn){ // fn(s, t) -> [x, y, z]; returns a (n+1)x2 strip geometry across one step
+  const pos = [], idx = [];
+  for (let i = 0; i <= STR.n; i++){ const sv = j - .5 + i / STR.n; for (let t = 0; t < 2; t++) pos.push(...fn(sv, t)); }
+  for (let i = 0; i < STR.n; i++){ const a = i * 2, b = a + 1, c = a + 2, d = a + 3; idx.push(a, c, b, b, c, d); }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+const hp = (sv, r, y) => { const a = sv * DA; return [r * Math.sin(a), y, r * Math.cos(a)]; };
+const topY = sv => (sv + .5) * CFG.H + STR.curb;
+function makeStringer(j){
+  const g = new T.Group();
+  const outer = mesh(helixStrip(j, (sv, t) => hp(sv, STR.ro, t ? topY(sv) : topY(sv) - STR.depth)), M(PAL.cliff, { side: T.DoubleSide }), 0, 0, 0, g);
+  outer.castShadow = true; outer.receiveShadow = true;
+  mesh(helixStrip(j, (sv, t) => hp(sv, t ? STR.ri : STR.ro, topY(sv))), M(PAL.frost, { side: T.DoubleSide }), 0, 0, 0, g);
+  mesh(helixStrip(j, (sv, t) => hp(sv, t ? STR.ri : STR.ro, topY(sv) - STR.depth + .001)), M(PAL.cliff2, { side: T.DoubleSide }), 0, 0, 0, g); // underside of the beam
+  const inner = mesh(helixStrip(j, (sv, t) => hp(sv, STR.ri, t ? topY(sv) : topY(sv) - .3)), M(PAL.cliff2, { side: T.DoubleSide }), 0, 0, 0, g); // curb's inner face
+  const soffit = mesh(helixStrip(j, (sv, t) => hp(sv, t ? CFG.RIN - .05 : STR.ri, topY(sv) - STR.depth)), M(PAL.cliff2, { side: T.DoubleSide }), 0, 0, 0, g);
+  soffit.receiveShadow = true;
+  tower.add(g); return g;
+}
+const stringers = new Map();
 function syncSteps(s){
   const lo = Math.floor(s) - CFG.buildBehind, hi = Math.floor(s) + CFG.buildAhead;
   for (const [j, g] of steps){ if (j < lo || j > hi){ tower.remove(g); steps.delete(j); } }
   for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++){ if (!steps.has(j) && !skipSteps.has(j)) steps.set(j, makeStep(j)); }
+  for (const [j, g] of stringers){ if (j < lo || j > hi){ tower.remove(g); stringers.delete(j); } }
+  for (let j = Math.max(-1, lo); j <= Math.min(hi, ROOF_S - 1); j++) if (!stringers.has(j)) stringers.set(j, makeStringer(j));
 }
-function clearSteps(){ for (const [, g] of steps) tower.remove(g); steps.clear(); }
+function clearSteps(){ for (const [, g] of steps) tower.remove(g); steps.clear(); for (const [, g] of stringers) tower.remove(g); stringers.clear(); }
 
 /* ground at the foot of the tower: island, pond, trees */
 const ground = new T.Group(); scene.add(ground);
