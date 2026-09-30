@@ -797,6 +797,7 @@ for (let i = 0; i < flyN; i++) flySeed.push([Math.random() * 6.28, 3.4 + Math.ra
 flyGeo.setAttribute('position', new T.BufferAttribute(flyPos, 3));
 function glowTex(r, g, b){ const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${r},${g},${b},1)`); gr.addColorStop(.3, `rgba(${r},${g},${b},.55)`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); }
 const dotTex = glowTex(255, 226, 160);
+const hazeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(.5, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
 // Cloud banks at the bottom and top of floor 8: seen above while climbing floor 7, below after leaving the fog.
 const puffTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   [[64, 70, 46], [40, 74, 30], [88, 72, 32], [60, 50, 30], [80, 56, 24]].forEach(([cx, cy, r]) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(.55, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); });
@@ -1236,13 +1237,13 @@ function Moths(k, first){
   const ms = [];
   for (let i = 0; i < 22; i++){
     const m = new T.Group(); g.add(m);
-    const wm = new T.MeshBasicMaterial({ color: PAL.moth[i % 4], side: T.DoubleSide });
+    const wm = new T.MeshBasicMaterial({ color: new T.Color(PAL.moth[i % 4]).lerp(new T.Color(0x6A5A8A), .3), side: T.DoubleSide }); // dusty, not glowing
     const wr = mesh(mothWingGeo, wm, .006, 0, 0, m), wl = mesh(mothWingGeo, wm, -.006, 0, 0, m); wl.scale.x = -1; // butterfly: wings meet at the body
     const body = mesh(sphere(.016, 6, 5), B(0x5A4A6E), 0, -.005, 0, m); body.scale.set(.8, 3, .8);
     const shadow = new T.Mesh(mothShadowGeo, mothShadowM); g.add(shadow);
     ms.push({ m, wl, wr, shadow, r: .2 + rnd() * .45, sp: 2 + rnd() * 2.5, ph: rnd() * 6.28, yv: (rnd() - .5) * .5 });
   }
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: dotTex, color: 0xFFF0C8, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .5 })); halo.scale.set(1.8, 1.8, 1); g.add(halo);
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: hazeTex, color: 0xD9D2EE, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: .14 })); halo.scale.set(3, 3, 1); g.add(halo); // faint, diffuse haze
   let slow = 0, killed = false, buzzT = 0; const tgt = new T.Vector3();
   return {
     type: 'moths', k, len: 1, first,
@@ -1255,7 +1256,7 @@ function Moths(k, first){
       if (agitated && (buzzT -= c.dt) <= 0){ buzzT = .5; if (G.state === 'play') AU.noise(.25, .018 * (1.2 - dist / 3.2), 'bandpass', 3200 + Math.random() * 800, 6); }
       if (killed){ girlCenterAt(c.s); tgt.copy(girlCenter); } else tgt.copy(home);
       center.lerp(tgt, 1 - Math.exp(-c.dt * (killed ? 14 : 3)));
-      halo.position.copy(center); halo.material.opacity = agitated ? .75 : .45;
+      halo.position.copy(center); halo.material.opacity = agitated ? .22 : .14;
       const spd = agitated ? 1.8 : 1, tight = killed ? .45 : 1;
       for (const q of ms){
         const a = c.t * q.sp * spd + q.ph; const rr = q.r * tight;
