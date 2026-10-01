@@ -1444,11 +1444,11 @@ function Knight(k, first, kneel = false){
         // floor 10: the knight steps to the wall, kneels and plants his sword to let the princess pass
         if (state === 'guard'){ poseArm(GUARD + Math.sin(c.t * 2 + k) * .06); if (G.state === 'play' && d < 4.6 && d > -1){ state = 'bow'; tm = 0; AU.tone(330, 'triangle', .6, .04); AU.tone(495, 'triangle', .6, .03, .12); } return; }
         const e = ease(clamp(tm / .8, 0, 1));
-        root.position.copy(P(k, lerp(CFG.RMID + .05, CFG.RIN + .42, e)));
+        root.position.copy(P(k - .22 * e, lerp(CFG.RMID + .05, CFG.RIN + .42, e), .22 * e * CFG.H)); // near the wall the next tread overlaps: slide back onto his own step
         root.rotation.y = baseYaw + 1.0 * e;
         // a real kneel: the body lowers a little, the legs fold but their feet stay on top of the step
         upper.forEach(dd => { dd.m.position.copy(dd.A.p); dd.m.position.y -= .17 * e; });
-        lower.forEach((dd, i) => { dd.m.position.copy(dd.A.p); const k2 = 1 - .38 * e; dd.m.scale.y = k2; dd.m.position.y = Math.max(dd.A.p.y * k2, .025); if (i % 2) dd.m.position.x += .1 * e; });
+        lower.forEach((dd, i) => { dd.m.position.copy(dd.A.p); const k2 = 1 - .38 * e; dd.m.scale.y = k2; dd.m.position.y = Math.max(dd.A.p.y * k2, .025); if (i % 2) dd.m.position.x -= .06 * e; });
         poseArm(lerp(GUARD, PLANT, e));
         return;
       }
@@ -2085,6 +2085,20 @@ function frame(now){
   renderer.render(scene, camera);
 }
 
+// Warm-up: compile every shader the climb will need right now (all hazard types, hidden finale and cloud pieces),
+// so nothing stalls the game the first time it shows up on the stairs.
+(function warmShaders(){
+  try {
+    resetGen(1);
+    Object.keys(MAKERS).forEach((t, i) => { try { hazards.push(MAKERS[t](30 + i * 14, false)); } catch(e){} });
+    try { hazards.push(Potion(200)); } catch(e){}
+    try { hazards.push(Boss(820)); } catch(e){}
+    addHulls();
+    const hidden = []; scene.traverse(o => { if (!o.visible){ hidden.push(o); o.visible = true; } });
+    renderer.compile(scene, camera);
+    hidden.forEach(o => { o.visible = false; });
+  } catch(e){}
+})();
 reset(); G.state = 'title';
 requestAnimationFrame(t => { lastT = t; frame(t); });
 })();
