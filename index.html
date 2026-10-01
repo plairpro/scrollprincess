@@ -542,7 +542,7 @@ const AU = {
 
 /* ============================== RENDERER / SCENE ============================== */
 const canvas = document.getElementById('c');
-const renderer = new T.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, alpha: true, powerPreference: 'high-performance' });
+const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
 let pr = Math.min(window.devicePixelRatio || 1, 2); // drops a little on its own if the phone can't hold 45 fps
 renderer.setPixelRatio(pr);
 renderer.setClearColor(0x000000, 0);
@@ -2014,7 +2014,7 @@ function frame(now){
   requestAnimationFrame(frame);
   if (now - lastT < 10) return; // 120 Hz screens: draw at 60, it is enough and keeps the phone cool
   let dt = (now - lastT) / 1000; lastT = now; dt = clamp(dt, 0, 1 / 20);
-  fpsAcc += dt; fpsN++; if (fpsAcc > .5){ fps = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0; if (G.state === 'play' && document.visibilityState === 'visible'){ slowN = fps < 45 ? slowN + 1 : 0; if (slowN >= 4 && pr > 1.25){ pr = Math.max(1.25, pr - .25); slowN = 0; renderer.setPixelRatio(pr); resize(); } } }
+  fpsAcc += dt; fpsN++; if (fpsAcc > .5){ fps = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0; if (G.state === 'play' && document.visibilityState === 'visible'){ slowN = fps < 45 ? slowN + 1 : 0; if (slowN >= 4 && pr > 1.5){ pr = Math.max(1.5, pr - .25); slowN = 0; renderer.setPixelRatio(pr); resize(); } } }
   const simDt = G.state === 'paused' ? 0 : dt;
   G.t += simDt;
 
